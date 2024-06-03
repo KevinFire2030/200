@@ -34,9 +34,30 @@ class Window(QMainWindow, main_form):
         self.pushButton_4.clicked.connect(self.hts.action_start)
         self.pushButton_5.clicked.connect(self.hts.action_end)
 
-        #self.pushButton.clicked.connect(self.hts.action_buy)
-        #self.pushButton_2.clicked.connect(self.hts.action_sell)
-        #self.pushButton_3.clicked.connect(self.hts.action_close)
+        # 1. 시장가
+        self.pushButton.clicked.connect(self.hts.action_buy)
+        self.pushButton_2.clicked.connect(self.hts.action_sell)
+        self.pushButton_3.clicked.connect(self.hts.action_close)
+
+        # 2.지정가
+        self.pushButton_6.clicked.connect(self.hts.action_buy2)
+        self.pushButton_7.clicked.connect(self.hts.action_sell2)
+
+        # 3.STOP
+        self.pushButton_8.clicked.connect(self.hts.action_buy3)
+        self.pushButton_9.clicked.connect(self.hts.action_sell3)
+
+        # 4.StopLimit
+        self.pushButton_10.clicked.connect(self.hts.action_buy4)
+        self.pushButton_11.clicked.connect(self.hts.action_sell4)
+
+        # 5.OCO
+        self.pushButton_12.clicked.connect(self.hts.action_buy5)
+        self.pushButton_13.clicked.connect(self.hts.action_sell5)
+
+        # 6.IFD
+        self.pushButton_14.clicked.connect(self.hts.action_buy6)
+        self.pushButton_15.clicked.connect(self.hts.action_sell6)
 
         pass
 
@@ -70,6 +91,9 @@ class Kiwoom_NQ100(QAxWidget):
         self.c_volume = 0
 
         self._system_running = False
+
+        # 스크린 번호
+        self.screen_number = 1000
 
         # 터틀 트레이딩
         self.atr_periods = 20
@@ -309,6 +333,104 @@ class Kiwoom_NQ100(QAxWidget):
 
         return df
 
+    def get_screen_number(self):
+        if self.screen_number > 9999:
+            self.screen_number = 1000
+        self.screen_number = self.screen_number + 1
+        return str(self.screen_number)
+
+    """
+    [opw10008: 해외파생신규주문2]
+
+    1. OpenAPI 조회 함수 입력값을 (설정합니다.
+                           
+    SetInputValue("계좌번호", "입력값1"));
+
+    SetInputValue("비밀번호", "입력값2");
+
+    비밀번호입력매체 = 00
+    입력
+    SetInputValue("비밀번호입력매체", "입력값3");
+
+    SetInputValue("종목코드", "입력값4");
+
+    매도수구분 = 1:매도, 2: 매수
+    SetInputValue("매도수구분", "입력값5");
+
+    해외주문유형 = 1:시장가, 2: 지정가, 3: STOP, 4: StopLimit, 5: OCO, 6: IF
+    DONE
+    SetInputValue("해외주문유형", "입력값6");
+
+    SetInputValue("주문수량", "입력값7");
+
+    SetInputValue("주문표시가격", "입력값8");
+
+    STOP구분 = 0:선택안함, 1: 선택
+    SetInputValue("STOP구분", "입력값9");
+
+    SetInputValue("STOP표시가격", "입력값10");
+
+    LIMIT구분 = 0:선택안함, 1: 선택
+    SetInputValue("LIMIT구분", "입력값11");
+
+    SetInputValue("LIMIT표시가격", "입력값12");
+
+    해외주문조건구분 = 0:당일, 6: GTD
+    SetInputValue("해외주문조건구분", "입력값13");
+
+    주문조건종료일자 = "":당일(0), 날짜입력: GTD(6)
+    SetInputValue("주문조건종료일자", "입력값14");
+
+    통신주문구분 = "AP"
+    입력
+    SetInputValue("통신주문구분", "입력값15");
+  
+    2. OpenAPI조회 함수를 호출해서 전문을 서버로 전송합니다.
+    CommRqData("RQName", "opw10008", "", "화면번호");
+
+    """
+
+
+    def send_order2(self, account_num, password, code, ls_gb, order_type, qty, price, stop_gb, stop_price, limit_gb, limit_price):
+        self.dynamicCall("SetInputValue(QString, QString)", "계좌번호", account_num)
+        self.dynamicCall("SetInputValue(QString, QString)", "비밀번호", password)
+        self.dynamicCall("SetInputValue(QString, QString)", "비밀번호입력매체", "00")
+        self.dynamicCall("SetInputValue(QString, QString)", "종목코드", code)
+        self.dynamicCall("SetInputValue(QString, QString)", "매도수구분", ls_gb)  # 1: 매도, 2: 매수
+        self.dynamicCall("SetInputValue(QString, QString)", "해외주문유형", order_type)  # 1: 시장가, 2: 지정가, ...
+        self.dynamicCall("SetInputValue(QString, QString)", "주문수량", str(qty))
+        self.dynamicCall("SetInputValue(QString, QString)", "주문표시가격", str(price))
+        self.dynamicCall("SetInputValue(QString, QString)", "STOP구분", str(stop_gb))
+        self.dynamicCall("SetInputValue(QString, QString)", "STOP표시가격", str(stop_price))
+        self.dynamicCall("SetInputValue(QString, QString)", "LIMIT구분", str(limit_gb))
+        self.dynamicCall("SetInputValue(QString, QString)", "LIMIT표시가격", str(limit_price))
+        self.dynamicCall("SetInputValue(QString, QString)", "해외주문조건구분", "0")  # 0: 당일, 6: GTD
+        self.dynamicCall("SetInputValue(QString, QString)", "주문조건종료일자", "")
+        self.dynamicCall("SetInputValue(QString, QString)", "통신주문구분", "AP")
+
+        self.dynamicCall("CommRqData(QString, QString, int, QString)", "해외파생신규주문2", "opw10008", "", self.get_screen_number())       #self.order_event_loop.exec_()
+
+    def get_order_gb(self, type):
+        if type == '매도':
+            return '1'
+        elif type == '매수':
+            return '2'
+
+    def get_order_type(self, type):
+        if type == '시장가':
+            return '1'
+        elif type == '지정가':
+            return '2'
+        elif type == 'STOP':
+            return '3'
+        elif type == 'StopLimit':
+            return '4'
+        elif type == 'OCO':
+            return '5'
+        elif type == 'IFD':
+            return '6'
+
+
 ############# 테스트 버튼 action ################
 
     def action_start(self):
@@ -321,6 +443,83 @@ class Kiwoom_NQ100(QAxWidget):
 
         self._system_running = False
 
+    def action_buy(self):
+        QMessageBox.about(self, "message", "시장가 매수")
+
+        self.send_order2(self.future_accno, "", self.code_symbol, self.get_order_gb('매수'), self.get_order_type('시장가'), 1, '', \
+                        '0', '', '0', '')
+
+    def action_sell(self):
+        QMessageBox.about(self, "message", "시장가 매도")
+
+        self.send_order2(self.future_accno, "", self.code_symbol, self.get_order_gb('매도'), self.get_order_type('시장가'), 1, '', \
+                        '0', '', '0', '')
+
+    def action_buy2(self):
+        QMessageBox.about(self, "message", "지정가 매수")
+
+        self.send_order2(self.future_accno, "", self.code_symbol, self.get_order_gb('매수'), self.get_order_type('지정가'), 1, self.c_close, \
+                        '0', '', '0', '')
+
+    def action_sell2(self):
+        QMessageBox.about(self, "message", "지정가 매도")
+
+        self.send_order2(self.future_accno, "", self.code_symbol, self.get_order_gb('매도'), self.get_order_type('지정가'), 1, self.c_close, \
+                        '0', '', '0', '')
+
+    def action_buy3(self):
+        QMessageBox.about(self, "message", "STOP 매수")
+
+        self.send_order2(self.future_accno, "", self.code_symbol, self.get_order_gb('매수'), self.get_order_type('STOP'), 1, '', \
+                        '1', self.c_close+5, '0', '')
+
+    def action_sell3(self):
+        QMessageBox.about(self, "message", "STOP 매도")
+
+        self.send_order2(self.future_accno, "", self.code_symbol, self.get_order_gb('매도'), self.get_order_type('STOP'), 1, '', \
+                        '1', self.c_close-5, '0', '')
+
+    def action_buy4(self):
+        QMessageBox.about(self, "message", "StopLimit 매수")
+
+        self.send_order2(self.future_accno, "", self.code_symbol, self.get_order_gb('매수'), self.get_order_type('StopLimit'), 1, self.c_close+5.5, \
+                        '1', self.c_close+5, '0', '')
+
+    def action_sell4(self):
+        QMessageBox.about(self, "message", "StopLimit 매도")
+
+        self.send_order2(self.future_accno, "", self.code_symbol, self.get_order_gb('매도'), self.get_order_type('StopLimit'), 1, self.c_close-5.5, \
+                        '1', self.c_close-5, '0', '')
+
+
+    def action_buy5(self):
+        QMessageBox.about(self, "message", "OCO 매수")
+
+        self.send_order2(self.future_accno, "", self.code_symbol, self.get_order_gb('매수'), self.get_order_type('OCO'), 1, '', \
+                        '1', self.c_close+5, '1', self.c_close-5)
+
+    def action_sell5(self):
+        QMessageBox.about(self, "message", "OCO 매도")
+
+        self.send_order2(self.future_accno, "", self.code_symbol, self.get_order_gb('매도'), self.get_order_type('OCO'), 1, '', \
+                        '1', self.c_close-5, '1', self.c_close+5)
+
+    def action_buy6(self):
+        QMessageBox.about(self, "message", "IFD 매수")
+
+        self.send_order2(self.future_accno, "", self.code_symbol, self.get_order_gb('매수'), self.get_order_type('IFD'),
+                         1, self.c_close, \
+                         '1', self.c_close - 5, '1', self.c_close + 5)
+
+    def action_sell6(self):
+        QMessageBox.about(self, "message", "IFD 매도")
+
+        self.send_order2(self.future_accno, "", self.code_symbol, self.get_order_gb('매도'), self.get_order_type('IFD'),
+                         1, self.c_close, \
+                         '1', self.c_close + 5, '1', self.c_close - 5)
+
+    def action_close(self):
+        QMessageBox.about(self, "message", "position close")
 
 if __name__ == "__main__":
     try:
