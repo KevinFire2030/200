@@ -30,12 +30,14 @@ class Window(QMainWindow, main_form):
         #self.action_tick_chart_req.triggered.connect(self.hts.action_tick_chart_req)
 
         # 테스트 버튼
-        #self.pushButton.clicked.connect(self.hts.actionbt)
+
+        self.pushButton_4.clicked.connect(self.hts.action_start)
+        self.pushButton_5.clicked.connect(self.hts.action_end)
+
         #self.pushButton.clicked.connect(self.hts.action_buy)
         #self.pushButton_2.clicked.connect(self.hts.action_sell)
         #self.pushButton_3.clicked.connect(self.hts.action_close)
-        #self.pushButton_4.clicked.connect(self.hts.action_start)
-        #self.pushButton_5.clicked.connect(self.hts.action_end)
+
         pass
 
 
@@ -52,7 +54,7 @@ class Kiwoom_NQ100(QAxWidget):
         self.future_accno = account_numbers.split(';')[0]  # 7011576372
 
         self.ohlcv = pd.DataFrame(
-            columns=['date_time', 'Open', 'High', 'Low', 'Close', 'Volume'])
+            columns=['date_time', 'Open', 'High', 'Low', 'Close', 'Volume', 'S1_EL', 'S1_ES', 'S1_ExL', 'S1_ExS', 'N'])
 
         # 실시간 틱차트 (t : tick, c = current)
         self.cnt = 0
@@ -66,6 +68,13 @@ class Kiwoom_NQ100(QAxWidget):
         self.c_low = 0
         self.c_open = 0
         self.c_volume = 0
+
+        self._system_running = False
+
+        # 터틀 트레이딩
+        self.atr_periods = 20
+        self.sys1_entry = 20
+        self.sys1_exit = 10
 
         # 선물틱차트조회
         self.set_input_value("종목코드", self.code_symbol)
@@ -186,6 +195,11 @@ class Kiwoom_NQ100(QAxWidget):
             print(f"해외선물틱차트조회 끝!")
             print(f"({delta}초 = {end_dt} - {start_dt})")
 
+    def on_receive_msg(self, screen_number, rq_name, tr_code, msg):
+
+        print('== on_receive_msg ==')
+        print(f'{rq_name}, {msg}')
+
     def on_receive_chejan_data(self, sGubun, nItemCnt, sFidList):
         #pass
         # self.get_current_position()
@@ -231,6 +245,20 @@ class Kiwoom_NQ100(QAxWidget):
                     {'date_time': self.c_dt, 'Open': self.c_open, 'High': self.c_high,'Low': self.c_low, 'Close': self.c_close, 'Volume': self.c_volume}, index=[0])
                 self.ohlcv = pd.concat([self.ohlcv, ohlcv], ignore_index=True)
 
+                # Breakouts과 N계산
+                df = self.ohlcv[-30:]
+                df = self._calc_breakouts(df)
+                df = self._calc_N(df)
+
+                # ohlcv에 시스템 1의 Breakouts 추가
+                self.ohlcv.S1_EL.iloc[-1] = df.S1_EL.iloc[-1]
+                self.ohlcv.S1_ES.iloc[-1] = df.S1_ES.iloc[-1]
+                self.ohlcv.S1_ExL.iloc[-1] = df.S1_ExL.iloc[-1]
+                self.ohlcv.S1_ExS.iloc[-1] = df.S1_ExS.iloc[-1]
+
+                # ohlcv에 N과 V(속도) 추가
+                self.ohlcv.N.iloc[-1] = df.N.iloc[-1]
+
                 print(f"[120틱-{self.ohlcv.index[-1]}] 체결시간: {self.ohlcv.date_time.iloc[-1]}, "
                       f"시가: {self.ohlcv.Open.iloc[-1]}, 고가: {self.ohlcv.High.iloc[-1]}, 저가: {self.ohlcv.Low.iloc[-1]}, 종가: {self.ohlcv.Close.iloc[-1]}, 거래량: {self.ohlcv.Volume.iloc[-1]}")
 
@@ -242,14 +270,56 @@ class Kiwoom_NQ100(QAxWidget):
                 self.c_volume = 0
                 self.t_cnt = 0
 
+                if self._system_running:
+                    self._run_system()
 
 
         pass
 
-    def on_receive_msg(self, screen_number, rq_name, tr_code, msg):
+    def _run_system(self):
 
-        print('== on_receive_msg ==')
-        print(f'{rq_name}, {msg}')
+        price = self.ohlcv.Close.iloc[-1]
+
+        # 시스템 1
+        S1_EL = self.ohlcv.S1_EL.iloc[-1]
+        S1_ES = self.ohlcv.S1_ES.iloc[-1]
+
+        S1_ExL = self.ohlcv.S1_ExL.iloc[-1]
+        S1_ExS = self.ohlcv.S1_ExS.iloc[-1]
+
+        N = self.ohlcv.N.iloc[-1]
+
+        print(f"_run_system")
+
+        pass
+
+    def _calc_breakouts(self, df):
+
+        # 시스템 1
+        df['S1_EL'] = df['Close'].rolling(self.sys1_entry).max()
+        df['S1_ExL'] = df['Close'].rolling(self.sys1_exit).min()
+        df['S1_ES'] = df['Close'].rolling(self.sys1_entry).min()
+        df['S1_ExS'] = df['Close'].rolling(self.sys1_exit).max()
+
+        return df
+
+    def _calc_N(self, df):
+
+        df['N'] = ta.atr(df['High'], df['Low'], df['Close'], length=20, mamode='sma')
+
+        return df
+
+############# 테스트 버튼 action ################
+
+    def action_start(self):
+        QMessageBox.about(self, "message", "start")
+
+        self._system_running = True
+
+    def action_end(self):
+        QMessageBox.about(self, "message", "end")
+
+        self._system_running = False
 
 
 if __name__ == "__main__":
