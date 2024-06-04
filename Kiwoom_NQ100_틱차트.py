@@ -87,20 +87,14 @@ class Kiwoom_NQ100(QAxWidget):
         self.ohlcv = pd.DataFrame(
             columns=['date_time', 'Open', 'High', 'Low', 'Close', 'Volume', 'S1_EL', 'S1_ES', 'S1_ExL', 'S1_ExS', 'N'])
 
-        # 실시간 분차트 (t : tick, c = current)
+        # 실시간 틱차트 (t : tick, c = current)
         self.cnt = 0
         #self.base_min_unit = 5
         self.base_tick_unit = 120
         self.code_symbol = "NQM24"  # MNQZ23
         self.t_cnt = 0
-        self.c_dt = 0
-        self.c_sec = 0
-        self.c_close = 0
-        self.c_high = 0
-        self.c_low = 0
-        self.c_open = 0
-        self.c_volume = 0
 
+        # 자동 매매 시작/종료 설정
         self._system_running = False
 
         # 스크린 번호
