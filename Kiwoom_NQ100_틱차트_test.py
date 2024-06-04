@@ -316,7 +316,7 @@ class Kiwoom_NQ100(QAxWidget):
     def on_receive_real_data(self, sCode, sRealType, sRealData):
 
         if sRealType == '해외선물시세':
-            # print(sRealData)
+            #print(sRealData)
 
             n_time = self._get_comm_real_data(sCode, 20)  # 체결 시간
             n_date = self._get_comm_real_data(sCode, 22)  # 체결 일자
@@ -329,13 +329,14 @@ class Kiwoom_NQ100(QAxWidget):
             # 1(시가),2,3,4,0(종가)
             self.t_cnt += 1
 
+
             gb = self.t_cnt % self.base_tick_unit
 
             # 1: 새틱차트 생성
             # 새틱차트 시작, 새틱차트 생성
             if gb == 1:
 
-                # print(f"틱 카운트: {self.t_cnt}, 구분: {gb}, 새틱차트 생성, 시작시간: {c_dt}, 시가(현재가): {c_price:.2f}, 시작수량: {c_volume} ")
+                #print(f"틱 카운트: {self.t_cnt}, 구분: {gb}, 새틱차트 생성, 시작시간: {c_dt}, 시가(현재가): {c_price:.2f}, 시작수량: {c_volume} ")
 
                 ohlcv = pd.DataFrame(
                     {'date_time': c_dt, 'Open': c_price, 'High': 0, 'Low': 100000,
@@ -353,6 +354,7 @@ class Kiwoom_NQ100(QAxWidget):
             # 2,3,4,0: 기존차트에서 틱업데이트
             else:
 
+
                 # 고가와 저가 업데이트
                 if self.ohlcv.High.iloc[-1] < c_price:
                     self.ohlcv.High.iloc[-1] = c_price
@@ -363,11 +365,13 @@ class Kiwoom_NQ100(QAxWidget):
                 self.ohlcv.Close.iloc[-1] = c_price
                 self.ohlcv.Volume.iloc[-1] += c_volume
 
-                # print(f"틱 카운트: {self.t_cnt}, 구분: {gb}, 기존틱차트 업데이트, 수량: {self.ohlcv.Volume.iloc[-1]} ")
+                #print(f"틱 카운트: {self.t_cnt}, 구분: {gb}, 기존틱차트 업데이트, 수량: {self.ohlcv.Volume.iloc[-1]} ")
+
 
             # Main Window 업데이트
-            # self.mw.label_7.setText(str(c_price))
+            #self.mw.label_7.setText(str(c_price))
             self.mw.lineEdit.setText(str(c_price))
+
 
 
 
