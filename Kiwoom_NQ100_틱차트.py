@@ -23,6 +23,9 @@ class Window(QMainWindow, main_form):
 
         self.hts.mw = self
 
+        self.statusBar().showMessage(self.hts.comm_status)
+
+
     def set_event_handler(self):
         #self.testButton.clicked.connect(self.hts.test)
 
@@ -30,9 +33,9 @@ class Window(QMainWindow, main_form):
         # Tools
         #self.action_ohlcv_save.triggered.connect(self.hts.action_real_chart_save)
         #self.action_tick_chart_req.triggered.connect(self.hts.action_tick_chart_req)
+        self.connect_status.triggered.connect(self.action_connect_status)
 
         # 시작 종료 버튼
-
         self.pushButton_4.clicked.connect(self.hts.action_start)
         self.pushButton_5.clicked.connect(self.hts.action_end)
 
@@ -70,6 +73,11 @@ class Window(QMainWindow, main_form):
         # self.lineedit이름.setText("String")
         # Lineedit의 글자를 바꾸는 메서드
         self.label_7.setText(self.lineEdit.text())
+
+    def action_connect_status(self):
+
+        self.statusBar().showMessage(self.hts.comm_status)
+
 
 
 class Kiwoom_NQ100(QAxWidget):
@@ -114,6 +122,7 @@ class Kiwoom_NQ100(QAxWidget):
         self.mw = 0
 
 
+
     def _create_kiwoom_instance(self):
         self.setControl("KFOPENAPI.KFOpenAPICtrl.1")
 
@@ -132,8 +141,10 @@ class Kiwoom_NQ100(QAxWidget):
     def on_event_connect(self, err_code):
         if err_code == 0:
             print("connected")
+            self.comm_status = "connected"
         else:
             print("disconnected")
+            self.comm_status = "disconnected"
 
         self.login_event_loop.exit()
 
@@ -535,6 +546,9 @@ if __name__ == "__main__":
         hts = Kiwoom_NQ100()
         window = Window(hts)
         window.show()
+
+        #window.statusBar().showMessage(hts.comm_status)
+
         sys.exit( app.exec_() )
     except Exception as e:
         print(e)

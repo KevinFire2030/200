@@ -363,7 +363,14 @@
     <addaction name="action_ohlcv_save"/>
     <addaction name="action_tick_chart_req"/>
    </widget>
+   <widget class="QMenu" name="menuTest">
+    <property name="title">
+     <string>Test</string>
+    </property>
+    <addaction name="connect_status"/>
+   </widget>
    <addaction name="menuTools"/>
+   <addaction name="menuTest"/>
   </widget>
   <widget class="QStatusBar" name="statusbar"/>
   <action name="action_ohlcv_save">
@@ -374,6 +381,11 @@
   <action name="action_tick_chart_req">
    <property name="text">
     <string>tick_chart_req</string>
+   </property>
+  </action>
+  <action name="connect_status">
+   <property name="text">
+    <string>connect_status</string>
    </property>
   </action>
  </widget>
