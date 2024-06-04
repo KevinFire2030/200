@@ -89,7 +89,7 @@ class Kiwoom_NQ100(QAxWidget):
 
         # 실시간 분차트 (t : tick, c = current)
         self.cnt = 0
-        self.base_min_unit = 5
+        self.base_min_unit = 3
         #self.base_tick_unit = 10
         self.code_symbol = "NQM24"  # MNQZ23
         self.t_cnt = 0
@@ -236,7 +236,7 @@ class Kiwoom_NQ100(QAxWidget):
             # 시작 시간
             start_dt = datetime.datetime.today()
 
-            print(f"해외선물{self.base_min_unit}분차트조회 시작!")
+            print(f"해외선물 {self.base_min_unit}분차트 조회 시작!")
 
             data_cnt = self._get_repeat_cnt(sTrCode, sRQName)
 
@@ -262,7 +262,7 @@ class Kiwoom_NQ100(QAxWidget):
             # 실행 시간
             delta = (end_dt - start_dt).total_seconds()
 
-            print(f"해외선물{self.base_min_unit}분차트조회 끝!")
+            print(f"해외선물 {self.base_min_unit}분차트 조회 끝!")
             print(f"({delta}초 = {end_dt} - {start_dt})")
 
 
@@ -285,8 +285,6 @@ class Kiwoom_NQ100(QAxWidget):
             #print(sRealData)
 
             c_dt = datetime.datetime.today()
-
-
 
             n_time = self._get_comm_real_data(sCode, 20)  # 체결 시간
             n_date = self._get_comm_real_data(sCode, 22)  # 체결 일자
@@ -330,7 +328,7 @@ class Kiwoom_NQ100(QAxWidget):
                 self.ohlcv = pd.concat([self.ohlcv, ohlcv], ignore_index=True)
 
                 print(f"[{self.base_min_unit}분-{self.ohlcv.index[-2]}] 체결시간: {self.ohlcv.date_time.iloc[-2]}, "
-                      f"시가: {self.ohlcv.Open.iloc[-2]}, 고가: {self.ohlcv.High.iloc[-2]}, 저가: {self.ohlcv.Low.iloc[-2]}, 종가: {self.ohlcv.Close.iloc[-2]}, 거래량: {self.ohlcv.Volume.iloc[-2]}")
+                      f"시가: {self.ohlcv.Open.iloc[-2]:.2f}, 고가: {self.ohlcv.High.iloc[-2]:.2f}, 저가: {self.ohlcv.Low.iloc[-2]:.2f}, 종가: {self.ohlcv.Close.iloc[-2]:.2f}, 거래량: {self.ohlcv.Volume.iloc[-2]}")
 
                 # 자동 매매
                 if self._system_running:
