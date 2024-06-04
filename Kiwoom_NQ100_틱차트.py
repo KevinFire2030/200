@@ -330,6 +330,8 @@ class Kiwoom_NQ100(QAxWidget):
             c_price = abs(float(self._get_comm_real_data(sCode, 10)))  # 현재가(체결가)
             c_volume = abs(int(self._get_comm_real_data(sCode, 15)))  # 거래량 (+ 매수체결, - 매도체결)
 
+            print(f"틱 카운트: {self.t_cnt}, 시간: {c_dt}, 현재가: {c_price:.2f}, 수량: {c_volume} ")
+
             #print(f"[1틱-{self.t_cnt}] 체결시간: {n_dt}, 체결시간2: {c_dt}, 체결가: {c_price}, 거래량: {c_volume}")
 
             # Main Window 업데이트
@@ -337,7 +339,7 @@ class Kiwoom_NQ100(QAxWidget):
             self.mw.lineEdit.setText(str(c_price))
 
 
-            if self.t_cnt > 1 and self.t_cnt < self.base_tick_unit + 1:
+            if self.t_cnt > 0 and self.t_cnt < self.base_tick_unit:
 
                 # 고가와 저가 업데이트
                 if self.ohlcv.High.iloc[-1] < c_price:
@@ -349,7 +351,7 @@ class Kiwoom_NQ100(QAxWidget):
                 self.ohlcv.Close.iloc[-1] = c_price
                 self.ohlcv.Volume.iloc[-1] += c_volume
 
-            elif self.t_cnt == 1 or self.t_cnt == self.base_tick_unit + 1:
+            elif self.t_cnt == 0 or self.t_cnt == self.base_tick_unit:
 
                 # 시가와 시간 업데이트
 
@@ -359,7 +361,7 @@ class Kiwoom_NQ100(QAxWidget):
                 self.ohlcv = pd.concat([self.ohlcv, ohlcv], ignore_index=True)
 
                 # 틱 카운트 초기화
-                self.t_cnt = 1
+                self.t_cnt = 0
 
                 print(f"[{self.base_tick_unit}틱-{self.ohlcv.index[-2]}] 체결시간: {self.ohlcv.date_time.iloc[-2]}, "
                       f"시가: {self.ohlcv.Open.iloc[-2]}, 고가: {self.ohlcv.High.iloc[-2]}, 저가: {self.ohlcv.Low.iloc[-2]}, 종가: {self.ohlcv.Close.iloc[-2]}, 거래량: {self.ohlcv.Volume.iloc[-2]}")
