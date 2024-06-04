@@ -280,23 +280,33 @@ class Kiwoom_NQ100(QAxWidget):
 
         if int(sGubun) == 0:  # 주문내역
             o_state = self.get_chejan_data(913) # 주문상태
-
+            o_gb = '매수' if self.get_chejan_data(907) == '2' else '매도'  # 매도수구분
+            o_qty = self.get_chejan_data(900)  # 주문수량
             self.o_dt = datetime.strptime(self.get_chejan_data(908),'%Y%m%d%H%M%S%f')  # 주문시간
 
 
-            print(f"[주문내역] 주문시간: {self.o_dt}, 주문상태: {o_state} ")
+            print(f"[주문내역] 주문시간: {self.o_dt}, 주문상태: {o_state}, 구분: {o_gb}, 주문수량: {o_qty} ")
 
             pass
 
         elif int(sGubun) == 1:  # 체결내역
 
             t_state = self.get_chejan_data(913)  # 주문상태
-            self.t_dt = datetime.strptime(self.get_chejan_data(908),'%Y%m%d%H%M%S%f')  # 체결수신시간
 
-            # 주문-체결 델타
-            delta = (self.t_dt - self.o_dt).total_seconds()
+            if t_state == '3':
 
-            print(f"[체결내역] 체결시간: {self.t_dt} ({delta}), 주문상태: {t_state}")
+                t_gb = '매수' if self.get_chejan_data(907) == '2' else '매도'  # 매도수구분
+                t_qty = self.get_chejan_data(911)  # 체결수량
+                t_r_qty = self.get_chejan_data(902)  # 주문 잔량, 미체결수량, r = remaining
+                t_c_qty = int(self.get_chejan_data(50711))  # 미결제청산가능수량, c = close
+                t_price = float(self.get_chejan_data(910))  # 체결가격
+
+                self.t_dt = datetime.strptime(self.get_chejan_data(908),'%Y%m%d%H%M%S%f')  # 체결수신시간
+
+                # 주문-체결 델타
+                delta = (self.t_dt - self.o_dt).total_seconds()
+
+                print(f"[체결내역] 체결시간: {self.t_dt} ({delta}), 주문상태: {t_state}, 구분: {t_gb}, 체결량: {t_qty}, 미체결: {t_r_qty}, 체결가: {t_price:.2f}, 청산가능: {t_c_qty}")
 
             pass
 
