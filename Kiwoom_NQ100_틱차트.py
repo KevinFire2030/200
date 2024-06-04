@@ -4,7 +4,7 @@ from PyQt5.QAxContainer import *
 from PyQt5.QtCore import *
 from PyQt5 import uic
 import time as t
-import datetime
+from datetime import datetime
 import pandas as pd
 import numpy as np
 pd.options.mode.chained_assignment = None
@@ -113,6 +113,10 @@ class Kiwoom_NQ100(QAxWidget):
         self.sys1_entry = 20
         self.sys1_exit = 10
 
+        # 체잔 데이타
+        self.o_dt = 0
+        self.t_dt = 0
+
         # 선물틱차트조회
         self.set_input_value("종목코드", self.code_symbol)
         self.set_input_value("시간단위", self.base_tick_unit)
@@ -179,7 +183,7 @@ class Kiwoom_NQ100(QAxWidget):
         if sRQName == '해외선물틱차트조회':
 
             # 시작 시간
-            start_dt = datetime.datetime.today()
+            start_dt = datetime.today()
 
             print(f"해외선물 {self.base_tick_unit}틱차트 조회 시작!")
 
@@ -207,7 +211,7 @@ class Kiwoom_NQ100(QAxWidget):
 
 
             # 종료 시간
-            end_dt = datetime.datetime.today()
+            end_dt = datetime.today()
 
             # 실행 시간
             delta = (end_dt - start_dt).total_seconds()
@@ -218,7 +222,7 @@ class Kiwoom_NQ100(QAxWidget):
         elif sRQName == '해외선물분차트조회':
 
             # 시작 시간
-            start_dt = datetime.datetime.today()
+            start_dt = datetime.today()
 
             print(f"해외선물 {self.base_min_unit}분차트 조회 시작!")
 
@@ -241,7 +245,7 @@ class Kiwoom_NQ100(QAxWidget):
                 self.ohlcv = pd.concat([ohlcv, self.ohlcv], ignore_index=True)
 
             # 종료 시간
-            end_dt = datetime.datetime.today()
+            end_dt = datetime.today()
 
             # 실행 시간
             delta = (end_dt - start_dt).total_seconds()
@@ -258,10 +262,46 @@ class Kiwoom_NQ100(QAxWidget):
         print('== on_receive_msg ==')
         print(f'{rq_name}, {msg}')
 
+    def get_chejan_data(self, fid):
+        ret = self.dynamicCall("GetChejanData(int)", fid)
+        return ret
+
+    """ 
+    FID : 913(주문상태)
+    - 1: 접수 (신규주문시 실시간 주문내역에서 1로 내려옴)
+    - 2: 확인 (신규주문을 정정/취소시 실시간 체결내역에서 2로 내려옴.)
+    - 3: 체결 (신규주문이 체결되면 실시간 체결내역에서 3으로 내려옴.)
+    """
+
     def on_receive_chejan_data(self, sGubun, nItemCnt, sFidList):
         #pass
         # self.get_current_position()
-        print('== on_receive_chejan_data ==')
+        print(f"== on_receive_chejan_data (sGubun: {sGubun}) ==")
+
+        if int(sGubun) == 0:  # 주문내역
+            o_state = self.get_chejan_data(913) # 주문상태
+
+            self.o_dt = datetime.strptime(self.get_chejan_data(908),'%Y%m%d%H%M%S%f')  # 주문시간
+
+
+            print(f"[주문내역] 주문시간: {self.o_dt}, 주문상태: {o_state} ")
+
+            pass
+
+        elif int(sGubun) == 1:  # 체결내역
+
+            t_state = self.get_chejan_data(913)  # 주문상태
+            self.t_dt = datetime.strptime(self.get_chejan_data(908),'%Y%m%d%H%M%S%f')  # 체결수신시간
+
+            # 주문-체결 델타
+            delta = (self.t_dt - self.o_dt).total_seconds()
+
+            print(f"[체결내역] 체결시간: {self.t_dt} ({delta}), 주문상태: {t_state}")
+
+            pass
+
+        elif int(sGubun) == 3:  # 마진콜
+            pass
 
     def on_receive_real_data(self, sCode, sRealType, sRealData):
 
