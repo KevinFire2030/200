@@ -21,6 +21,8 @@ class Window(QMainWindow, main_form):
         self.setupUi(self)
         self.set_event_handler()
 
+        self.hts.mw = self
+
     def set_event_handler(self):
         #self.testButton.clicked.connect(self.hts.test)
 
@@ -29,7 +31,7 @@ class Window(QMainWindow, main_form):
         #self.action_ohlcv_save.triggered.connect(self.hts.action_real_chart_save)
         #self.action_tick_chart_req.triggered.connect(self.hts.action_tick_chart_req)
 
-        # 테스트 버튼
+        # 시작 종료 버튼
 
         self.pushButton_4.clicked.connect(self.hts.action_start)
         self.pushButton_5.clicked.connect(self.hts.action_end)
@@ -59,7 +61,15 @@ class Window(QMainWindow, main_form):
         self.pushButton_14.clicked.connect(self.hts.action_buy6)
         self.pushButton_15.clicked.connect(self.hts.action_sell6)
 
+        # line edit
+        self.lineEdit.textChanged.connect(self.changeTextFunction)
+
         pass
+
+    def changeTextFunction(self):
+        # self.lineedit이름.setText("String")
+        # Lineedit의 글자를 바꾸는 메서드
+        self.label_7.setText(self.lineEdit.text())
 
 
 class Kiwoom_NQ100(QAxWidget):
@@ -104,6 +114,9 @@ class Kiwoom_NQ100(QAxWidget):
         self.set_input_value("종목코드", self.code_symbol)
         self.set_input_value("시간단위", self.base_tick_unit)
         self.comm_rq_data("해외선물틱차트조회", "opc10001", '', "2000")
+
+        # main window
+        self.mw = 0
 
 
     def _create_kiwoom_instance(self):
@@ -247,6 +260,10 @@ class Kiwoom_NQ100(QAxWidget):
             c_volume = abs(int(self._get_comm_real_data(sCode, 15)))  # 거래량 (+ 매수체결, - 매도체결)
 
             #print(f"[1틱-{self.t_cnt}] 체결시간: {n_dt}, 체결시간2: {c_dt}, 체결가: {c_price}, 거래량: {c_volume}")
+
+            # Main Window 업데이트
+            #self.mw.label_7.setText(str(c_price))
+            self.mw.lineEdit.setText(str(c_price))
 
 
             # 첫번째 틱일 경우, 체결 시간(일시)과 시가 업데이트
@@ -519,7 +536,8 @@ class Kiwoom_NQ100(QAxWidget):
                          '1', self.c_close + 5, '1', self.c_close - 5)
 
     def action_close(self):
-        QMessageBox.about(self, "message", "position close")
+        #QMessageBox.about(self, "message", "position close")
+        self.mw.label_7.setText("position close")
 
 if __name__ == "__main__":
     try:
