@@ -14,19 +14,6 @@
    <string>Fire2025</string>
   </property>
   <widget class="QWidget" name="centralwidget">
-   <widget class="QPushButton" name="pushButton_3">
-    <property name="geometry">
-     <rect>
-      <x>560</x>
-      <y>350</y>
-      <width>111</width>
-      <height>28</height>
-     </rect>
-    </property>
-    <property name="text">
-     <string>position close</string>
-    </property>
-   </widget>
    <widget class="QPushButton" name="pushButton_4">
     <property name="geometry">
      <rect>
@@ -72,7 +59,7 @@
       <x>310</x>
       <y>120</y>
       <width>401</width>
-      <height>221</height>
+      <height>231</height>
      </rect>
     </property>
     <property name="title">
@@ -427,7 +414,7 @@
       <x>10</x>
       <y>150</y>
       <width>281</width>
-      <height>121</height>
+      <height>201</height>
      </rect>
     </property>
     <property name="title">
@@ -511,11 +498,23 @@
       <set>Qt::AlignRight|Qt::AlignTrailing|Qt::AlignVCenter</set>
      </property>
     </widget>
+    <widget class="QPushButton" name="pushButton_3">
+     <property name="geometry">
+      <rect>
+       <x>120</x>
+       <y>130</y>
+       <width>111</width>
+       <height>28</height>
+      </rect>
+     </property>
+     <property name="text">
+      <string>position close</string>
+     </property>
+    </widget>
    </widget>
    <zorder>groupBox_3</zorder>
    <zorder>groupBox_2</zorder>
    <zorder>groupBox</zorder>
-   <zorder>pushButton_3</zorder>
    <zorder>pushButton_4</zorder>
    <zorder>pushButton_5</zorder>
    <zorder>lineEdit</zorder>

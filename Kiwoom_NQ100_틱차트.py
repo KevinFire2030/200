@@ -68,6 +68,9 @@ class Window(QMainWindow, main_form):
         # line edit
         self.lineEdit.textChanged.connect(self.changeTextFunction)
 
+        # 포지션 일괄 청산
+        self.pushButton_3.clicked.connect(self.hts.position.close)
+
         pass
 
     def changeTextFunction(self):
@@ -84,6 +87,7 @@ class Position:
         self.__broker = broker
 
         # OnReceiveTrData() 함수에서 req_opw30003() 요청에 대한 Tr 수신시  업데이트 변수
+        # 청산시 초기화
         self.code = '' # 종목이 여러 종목 일수 있지만 일단 단일종목만
         self.gb = 0 # 1: 매도, 2: 매수, 0: 포지션x
         self.qty = 0 # 수량
@@ -135,7 +139,6 @@ class Position:
             self.pl_pct = pl_pct  # 수익률
 
 
-
         # Main Window 업데이트 - 임시
         # 실시간 체결가 업데이트
         self.__broker.mw.lineEdit_5.setText(str(self.pl_KRW))
@@ -181,15 +184,53 @@ class Position:
 
         return self.__broker.commission * 2 # 왕복, [체결내역-참고] 원화환율: 1377.0, 종목수수료: 2.0
 
+    """
+       def action_buy(self):
+        QMessageBox.about(self, "message", "시장가 매수")
+
+        self.send_order2(self.future_accno, "", self.code_symbol, self.get_order_gb('매수'), self.get_order_type('시장가'), 1, '', \
+                        '0', '', '0', '')
+
+    def action_sell(self):
+        QMessageBox.about(self, "message", "시장가 매도")
+
+        self.send_order2(self.future_accno, "", self.code_symbol, self.get_order_gb('매도'), self.get_order_type('시장가'), 1, '', \
+                        '0', '', '0', '')
+    """
+
+
     def close(self):
         print(f"position close()")
-        pass
+
+        # 미체결주문이 있는지 확인
+        # 있으면 모두(일괄) 취소
+
+        # 미체결주문이 없고 청산가능 수량이 1 이상인지 확인
+
+        if (self.qty == self.d_qty) and self.d_qty > 0:
+
+            # 매수 포지션이면
+            if self.is_long():
+
+                # 시장가 전량 매도
+                self.__broker.send_order2(self.__broker.future_accno, "", self.__broker.code_symbol, self.__broker.get_order_gb('매도'), \
+                                 self.__broker.get_order_type('시장가'), self.d_qty, '', \
+                                 '0', '', '0', '')
+
+            # 매도 포지션이면
+            elif self.is_short():
+
+                # 시장가 전량 매수
+                self.__broker.send_order2(self.__broker.future_accno, "", self.__broker.code_symbol, self.__broker.get_order_gb('매수'), \
+                                          self.__broker.get_order_type('시장가'), self.d_qty, '', \
+                                          '0', '', '0', '')
+
 
     def is_long(self) -> bool:
         """True if the position is long (self.gb is 2)."""
         return self.gb == 2
 
-    def is_short(self):
+    def is_short(self) -> bool:
         #print(f"position is_short()")
         """True if the position is short (self.gb is 1)."""
         return self.gb == 1
@@ -471,7 +512,13 @@ class Kiwoom_NQ100(QAxWidget):
 
             t_state = self.get_chejan_data(913)  # 주문상태
 
-            if t_state == '3':
+            if t_state == '2':
+
+                print(f"[체결내역] 주문 정정/취소 확인")
+
+                pass
+
+            elif t_state == '3':
 
                 t_gb = '매수' if self.get_chejan_data(907) == '2' else '매도'  # 매도수구분
                 t_qty = self.get_chejan_data(911)  # 체결수량
@@ -499,9 +546,9 @@ class Kiwoom_NQ100(QAxWidget):
                       f" 청산가능: {t_c_qty}")
                 print(f"[체결내역-참고] 원화환율: {self.exRate}, 종목수수료: {self.commission}")
 
-                # 미결제잔고내역조회 (opw30003)
-                # 체결후 포지션(잔고) 업데이트
-                self.req_opw30003()
+            # 미결제잔고내역조회 (opw30003)
+            # 체결후 포지션(잔고) 업데이트
+            self.req_opw30003()
 
             pass
 
@@ -658,28 +705,30 @@ class Kiwoom_NQ100(QAxWidget):
   
     2. OpenAPI조회 함수를 호출해서 전문을 서버로 전송합니다.
     CommRqData("RQName", "opw10008", "", "화면번호");
+         
+
 
     """
 
 
     def send_order2(self, account_num, password, code, ls_gb, order_type, qty, price, stop_gb, stop_price, limit_gb, limit_price):
-        self.dynamicCall("SetInputValue(QString, QString)", "계좌번호", account_num)
-        self.dynamicCall("SetInputValue(QString, QString)", "비밀번호", password)
-        self.dynamicCall("SetInputValue(QString, QString)", "비밀번호입력매체", "00")
-        self.dynamicCall("SetInputValue(QString, QString)", "종목코드", code)
-        self.dynamicCall("SetInputValue(QString, QString)", "매도수구분", ls_gb)  # 1: 매도, 2: 매수
-        self.dynamicCall("SetInputValue(QString, QString)", "해외주문유형", order_type)  # 1: 시장가, 2: 지정가, ...
-        self.dynamicCall("SetInputValue(QString, QString)", "주문수량", str(qty))
-        self.dynamicCall("SetInputValue(QString, QString)", "주문표시가격", str(price))
-        self.dynamicCall("SetInputValue(QString, QString)", "STOP구분", str(stop_gb))
-        self.dynamicCall("SetInputValue(QString, QString)", "STOP표시가격", str(stop_price))
-        self.dynamicCall("SetInputValue(QString, QString)", "LIMIT구분", str(limit_gb))
-        self.dynamicCall("SetInputValue(QString, QString)", "LIMIT표시가격", str(limit_price))
-        self.dynamicCall("SetInputValue(QString, QString)", "해외주문조건구분", "0")  # 0: 당일, 6: GTD
-        self.dynamicCall("SetInputValue(QString, QString)", "주문조건종료일자", "")
-        self.dynamicCall("SetInputValue(QString, QString)", "통신주문구분", "AP")
+        self.set_input_value("계좌번호", account_num)
+        self.set_input_value("비밀번호", password)
+        self.set_input_value("비밀번호입력매체", "00")
+        self.set_input_value("종목코드", code)
+        self.set_input_value("매도수구분", ls_gb)  # 1: 매도, 2: 매수
+        self.set_input_value("해외주문유형", order_type)  # 1: 시장가, 2: 지정가, ...
+        self.set_input_value("주문수량", str(qty))
+        self.set_input_value("주문표시가격", str(price))
+        self.set_input_value("STOP구분", str(stop_gb))
+        self.set_input_value("STOP표시가격", str(stop_price))
+        self.set_input_value("LIMIT구분", str(limit_gb))
+        self.set_input_value("LIMIT표시가격", str(limit_price))
+        self.set_input_value("해외주문조건구분", "0")  # 0: 당일, 6: GTD
+        self.set_input_value("주문조건종료일자", "")
+        self.set_input_value("통신주문구분", "AP")
 
-        self.dynamicCall("CommRqData(QString, QString, int, QString)", "해외파생신규주문2", "opw10008", "", self.get_screen_number())       #self.order_event_loop.exec_()
+        ret = self.comm_rq_data("해외파생신규주문2", "opw10008", "", self.get_screen_number())       #self.order_event_loop.exec_()
 
     def get_order_gb(self, type):
         if type == '매도':
