@@ -82,29 +82,117 @@ class Window(QMainWindow, main_form):
 class Position:
     def __init__(self, broker: 'Kiwoom_NQ100'):
         self.__broker = broker
+
+        # OnReceiveTrData() 함수에서 req_opw30003() 요청에 대한 Tr 수신시  업데이트 변수
         self.code = '' # 종목이 여러 종목 일수 있지만 일단 단일종목만
         self.gb = 0 # 1: 매도, 2: 매수, 0: 포지션x
         self.qty = 0 # 수량
         self.d_qty = 0 # 청산(처분)가능 수량, disposal qty
         self.a_price = 0 # 평단가, average price
+        self.commission = 0 # 수수료, 실제 사용하지는 않음
+        self.c_pl = 0  # 실현손익(원), closed pl
+
+        # OnReceiveRealData() 함수에서 실시간 업데이트 변수
         self.c_price = 0  # 현재가, current price
-        self.pl = 0  # 평가손익
+        self.pl = 0  # 평가손익($)
+        self.pl_KRW = 0  # 평가손익(원)
+        self.r_pl = 0  # 실손익($) (= 평가손익 - 수수료), real pl
+        self.r_pl_KRW = 0  # 실손익(원) (= r_pl * 환율), won pl
         self.pl_pct = 0 # 수익률
-        self.r_pl = 0 # 실현손익, realized pl
+
 
         self.bep = 0 # 본전, 수수료 포함, 평단가 + 수수료 (수량 * 2$)
+
+    def update(self, c_price):
+        #print(f"position update()")
+
+        # 포지션이 있는 경우에만 업데이트
+        if self.qty > 0:
+            # 손익 계산
+            # 평단가와 현재가 차이 계산
+            p_delta = self.a_price - c_price if self.is_short() else c_price - self.a_price
+            # 수량과 레버이지를 곱해 손익 계산
+            # 평가(청산) 손익 ($)
+            pl = p_delta * self.qty * self.get_point_value(self.code)
+            # 평가(청산) 손익 (원)
+            pl_KRW = pl * self.get_exRate()
+            # 실손익 ($)
+            r_pl = pl - self.get_commission() * self.qty
+            # 모투 수수료 적용 for 검증
+            #r_pl = pl - self.commission * self.qty
+            # 실손익 (원)
+            r_pl_KRW = r_pl * self.get_exRate()
+            # 수익률
+            pl_pct = round(p_delta / self.a_price * 100,2)
+
+            # 포지션 업데이트
+
+            self.c_price = c_price # 현재가
+            self.pl = pl  # 평가손익($)
+            self.pl_KRW = pl_KRW  # 평가손익($)
+            self.r_pl = r_pl  # 실손익($) (= 평가손익 - 수수료), real pl
+            self.r_pl_KRW = r_pl_KRW  # 실손익(원) (= r_pl * 환율), won pl
+            self.pl_pct = pl_pct  # 수익률
+
+
+
+        # Main Window 업데이트 - 임시
+        # 실시간 체결가 업데이트
+        self.__broker.mw.lineEdit_5.setText(str(self.pl_KRW))
+        # 실시간 손익 업데이트
+        self.__broker.mw.lineEdit_6.setText(str(self.pl))
+        # 실시간 손익 업데이트
+        self.__broker.mw.lineEdit_7.setText(str(self.pl_pct))
+
+        pass
+
+    def get_exRate(self):
+
+        return self.__broker.exRate
+
+    def get_point_value(self, code):
+
+        if code[0:2] == 'NQ':
+            value = 20
+
+        elif code[0:2] == 'MN':
+            value = 2
+
+        else:
+            value = 1
+
+        return value
+
+
+
+    """
+    def get_commission(self, code):
+           if code[0:2] == 'NQ':
+               value = 2.3 * 2 # 왕복 4.6$
+
+           elif code[0:2] == 'MN':
+               value = 1 * 2 # # 왕복 2$
+
+           else:
+               value = 1
+           """
+
+    def get_commission(self):
+
+        return self.__broker.commission * 2 # 왕복, [체결내역-참고] 원화환율: 1377.0, 종목수수료: 2.0
 
     def close(self):
         print(f"position close()")
         pass
 
-    def is_long(self):
-        print(f"position is_long()")
-        pass
+    def is_long(self) -> bool:
+        """True if the position is long (self.gb is 2)."""
+        return self.gb == 2
 
     def is_short(self):
-        print(f"position is_short()")
-        pass
+        #print(f"position is_short()")
+        """True if the position is short (self.gb is 1)."""
+        return self.gb == 1
 
 
 class Kiwoom_NQ100(QAxWidget):
@@ -121,6 +209,8 @@ class Kiwoom_NQ100(QAxWidget):
 
         # 포지션
         self.position = Position(self)
+        self.exRate = 1
+        self.commission = 1
 
 
         # 실시간 틱차트 (t : tick, c = current)
@@ -301,42 +391,49 @@ class Kiwoom_NQ100(QAxWidget):
             s_qty = int(self._comm_get_data(sTrCode, sRQName, 0, "매도수량"))
             l_qty = int(self._comm_get_data(sTrCode, sRQName, 0, "매수수량"))
             pl = float(self._comm_get_data(sTrCode, sRQName, 0, "총평가금액")) / 100
-            self.position.r_pl = float(self._comm_get_data(sTrCode, sRQName, 0, "실현수익금액")) / 100
+            self.position.c_pl = float(self._comm_get_data(sTrCode, sRQName, 0, "실현수익금액")) / 100
 
             # 전체 미결제잔고 내역 출력
-            print(f"[미결제잔고내역-전체] 매도수량: {s_qty}, 매수수량: {l_qty}, 평가손익(원): {pl}, 실현손익(원): {self.position.r_pl}")
+            print(f"[미결제잔고내역-전체] 매도수량: {s_qty}, 매수수량: {l_qty}, 평가손익(원): {pl}, 실현손익(원): {self.position.c_pl}")
 
-            data_cnt = self._get_repeat_cnt(sTrCode, sRQName)
+            # 청산시 포지션 초기화
+            if s_qty + l_qty == 0:
+                self.position.code = ''
+                self.position.gb = 0
+                self.position.qty = 0
+                self.position.d_qty = 0
+                self.position.a_price = 0
+                self.position.c_price = 0
+                self.position.pl = 0
+                self.position.pl_KRW = 0
+                self.position.r_pl = 0
+                self.position.r_pl_KRW = 0
+                self.position.pl_pct = 0
 
-            for i in range(0, data_cnt):
-                self.position.code = self._comm_get_data(sTrCode, sRQName, i, "종목코드")
-                #gb = '매수' if self._comm_get_data(sTrCode, sRQName, i, "매도수구분") == '2' else '매도'
-                self.position.gb = int(self._comm_get_data(sTrCode, sRQName, i, "매도수구분"))
-                self.position.qty = int(self._comm_get_data(sTrCode, sRQName, i, "수량"))
-                self.position.d_qty = int(self._comm_get_data(sTrCode, sRQName, i, "청산가능"))
-                self.position.a_price = float(self._comm_get_data(sTrCode, sRQName, i, "평균단가"))
-                self.position.c_price = float(self._comm_get_data(sTrCode, sRQName, i, "현재가격"))
-                self.position.pl = float(self._comm_get_data(sTrCode, sRQName, i, "평가손익")) / 100
+                self.position.commission = 1
 
-                print(f"[미결제잔고내역-{self.position.code}] 매도수구분: {self.position.gb}, "
-                      f"수량: {self.position.qty}, 청산가능: {self.position.d_qty}, "
-                      f"평단가: {self.position.a_price}, 현재가: {self.position.c_price}, 평가손익($): {self.position.pl}")
+                print(f"[미결제잔고내역-청산] 포지션 초기화")
 
-            """
-                jango = pd.DataFrame(
-                    {'code': code, 'gb': gb, 'qty': qty, 'c_qty': c_qty, 'a_price': a_price, 'c_price': c_price,
-                     'pnl': pnl}, index=[0])
+            else:
 
-                self.position = pd.concat([jango, self.position], ignore_index=True)
+                data_cnt = self._get_repeat_cnt(sTrCode, sRQName)
 
-            # 종목별 미결제잔고 내역 출력
-            print(f"[미결제잔고내역-{self.position.code.iloc[0]}] 매도수구분: {self.position.gb.iloc[0]}, "
-                  f"수량: {self.position.qty.iloc[0]}, 청산가능: {self.position.c_qty.iloc[0]}, "
-                  f"평단가: {self.position.a_price.iloc[0]}, 현재가: {self.position.c_price.iloc[0]}, 평가손익: {self.position.pnl.iloc[0]}")
-            
-            """
+                for i in range(0, data_cnt):
+                    self.position.code = self._comm_get_data(sTrCode, sRQName, i, "종목코드")
+                    #gb = '매수' if self._comm_get_data(sTrCode, sRQName, i, "매도수구분") == '2' else '매도'
+                    self.position.gb = int(self._comm_get_data(sTrCode, sRQName, i, "매도수구분"))
+                    self.position.qty = int(self._comm_get_data(sTrCode, sRQName, i, "수량"))
+                    self.position.d_qty = int(self._comm_get_data(sTrCode, sRQName, i, "청산가능"))
+                    self.position.a_price = float(self._comm_get_data(sTrCode, sRQName, i, "평균단가"))
+                    self.position.c_price = float(self._comm_get_data(sTrCode, sRQName, i, "현재가격"))
+                    self.position.pl = float(self._comm_get_data(sTrCode, sRQName, i, "평가손익")) / 100
+                    self.position.commission = float(self._comm_get_data(sTrCode, sRQName, i, "수수료"))
 
-            pass
+                    print(f"[미결제잔고내역-{self.position.code}] 매도수구분: {self.position.gb}, "
+                          f"수량: {self.position.qty}, 청산가능: {self.position.d_qty}, "
+                          f"평단가: {self.position.a_price}, 현재가: {self.position.c_price}, 평가손익($): {self.position.pl}, "
+                          f"수수료: {self.position.qty}")
+
 
     def on_receive_msg(self, screen_number, rq_name, tr_code, msg):
 
@@ -381,6 +478,10 @@ class Kiwoom_NQ100(QAxWidget):
                 t_r_qty = self.get_chejan_data(902)  # 주문 잔량, 미체결수량, r = remaining
                 self.t_price = float(self.get_chejan_data(910))  # 체결가격
 
+                self.exRate = float(self.get_chejan_data(50718))  # 원화환율
+                self.commission = float(self.get_chejan_data(50717))  # 종목수수료, 935 체결 수수료는 미지원 (키움 게시판)
+
+
                 self.t_dt = datetime.strptime(self.get_chejan_data(908),'%Y%m%d%H%M%S%f')  # 체결수신시간
 
                 # 주문-체결 시간 델타
@@ -396,6 +497,7 @@ class Kiwoom_NQ100(QAxWidget):
 
                 print(f"[체결내역] 체결시간: {self.t_dt}({delta}초), 체결가: {self.t_price:.2f}({delta2:.2f}), 주문상태: {t_state}, 구분: {t_gb}, 체결량: {t_qty}, 미체결: {t_r_qty},  "
                       f" 청산가능: {t_c_qty}")
+                print(f"[체결내역-참고] 원화환율: {self.exRate}, 종목수수료: {self.commission}")
 
                 # 미결제잔고내역조회 (opw30003)
                 # 체결후 포지션(잔고) 업데이트
@@ -458,9 +560,14 @@ class Kiwoom_NQ100(QAxWidget):
 
                 # print(f"틱 카운트: {self.t_cnt}, 구분: {gb}, 기존틱차트 업데이트, 수량: {self.ohlcv.Volume.iloc[-1]} ")
 
+            # Position 실시간 업데이트
+            self.position.update(c_price)
+
             # Main Window 업데이트
             # self.mw.label_7.setText(str(c_price))
             self.mw.lineEdit.setText(str(c_price))
+            # 실시간 손익 업데이트
+            #self.mw.lineEdit_6.setText(str(self.position.pl))
 
 
 

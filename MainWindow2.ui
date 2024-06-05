@@ -436,11 +436,14 @@
     <widget class="QLineEdit" name="lineEdit_5">
      <property name="geometry">
       <rect>
-       <x>96</x>
+       <x>120</x>
        <y>30</y>
        <width>113</width>
        <height>21</height>
       </rect>
+     </property>
+     <property name="alignment">
+      <set>Qt::AlignRight|Qt::AlignTrailing|Qt::AlignVCenter</set>
      </property>
     </widget>
     <widget class="QLabel" name="label_11">
@@ -448,35 +451,64 @@
       <rect>
        <x>20</x>
        <y>32</y>
-       <width>64</width>
-       <height>15</height>
+       <width>101</width>
+       <height>16</height>
       </rect>
      </property>
      <property name="text">
-      <string>Trade :</string>
+      <string>pl (KRW) :</string>
      </property>
     </widget>
     <widget class="QLineEdit" name="lineEdit_6">
      <property name="geometry">
       <rect>
-       <x>96</x>
+       <x>120</x>
        <y>60</y>
        <width>113</width>
        <height>21</height>
       </rect>
      </property>
+     <property name="alignment">
+      <set>Qt::AlignRight|Qt::AlignTrailing|Qt::AlignVCenter</set>
+     </property>
     </widget>
     <widget class="QLabel" name="label_12">
      <property name="geometry">
       <rect>
-       <x>25</x>
+       <x>20</x>
        <y>62</y>
-       <width>64</width>
-       <height>15</height>
+       <width>81</width>
+       <height>16</height>
       </rect>
      </property>
      <property name="text">
-      <string>PnL :</string>
+      <string>pl (USD):</string>
+     </property>
+    </widget>
+    <widget class="QLabel" name="label_13">
+     <property name="geometry">
+      <rect>
+       <x>20</x>
+       <y>90</y>
+       <width>101</width>
+       <height>16</height>
+      </rect>
+     </property>
+     <property name="text">
+      <string>pL_pct (%) :</string>
+     </property>
+    </widget>
+    <widget class="QLineEdit" name="lineEdit_7">
+     <property name="geometry">
+      <rect>
+       <x>120</x>
+       <y>90</y>
+       <width>113</width>
+       <height>21</height>
+      </rect>
+     </property>
+     <property name="alignment">
+      <set>Qt::AlignRight|Qt::AlignTrailing|Qt::AlignVCenter</set>
      </property>
     </widget>
    </widget>
