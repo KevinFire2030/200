@@ -517,6 +517,7 @@
      <string>Test</string>
     </property>
     <addaction name="connect_status"/>
+    <addaction name="req_opw30003"/>
    </widget>
    <addaction name="menuTools"/>
    <addaction name="menuTest"/>
@@ -535,6 +536,11 @@
   <action name="connect_status">
    <property name="text">
     <string>connect_status</string>
+   </property>
+  </action>
+  <action name="req_opw30003">
+   <property name="text">
+    <string>req_opw30003</string>
    </property>
   </action>
  </widget>
