@@ -79,6 +79,32 @@ class Window(QMainWindow, main_form):
 
         self.statusBar().showMessage(self.hts.comm_status)
 
+class Position:
+    def __init__(self, broker: 'Kiwoom_NQ100'):
+        self.__broker = broker
+        self.code = '' # 종목이 여러 종목 일수 있지만 일단 단일종목만
+        self.gb = 0 # 1: 매도, 2: 매수, 0: 포지션x
+        self.qty = 0 # 수량
+        self.d_qty = 0 # 청산(처분)가능 수량, disposal qty
+        self.a_price = 0 # 평단가, average price
+        self.c_price = 0  # 현재가, current price
+        self.pl = 0  # 평가손익
+        self.pl_pct = 0 # 수익률
+        self.r_pl = 0 # 실현손익, realized pl
+
+        self.bep = 0 # 본전, 수수료 포함, 평단가 + 수수료 (수량 * 2$)
+
+    def close(self):
+        print(f"position close()")
+        pass
+
+    def is_long(self):
+        print(f"position is_long()")
+        pass
+
+    def is_short(self):
+        print(f"position is_short()")
+        pass
 
 
 class Kiwoom_NQ100(QAxWidget):
@@ -93,8 +119,8 @@ class Kiwoom_NQ100(QAxWidget):
         account_numbers = self.get_login_info("ACCNO")
         self.future_accno = account_numbers.split(';')[0]  # 7011576372
 
-        # 포지션 (t : tick, c = current)
-        self.position = pd.DataFrame(columns=['code', 'gb', 'qty', 'c_qty', 'a_price', 'c_price', 'pnl'])
+        # 포지션
+        self.position = Position(self)
 
 
         # 실시간 틱차트 (t : tick, c = current)
@@ -123,6 +149,11 @@ class Kiwoom_NQ100(QAxWidget):
         self.t_dt = 0
         self.o_price = 0
         self.t_price = 0
+
+        # 미결제잔고내역조회 (opw30003)
+        # 프로그램 시작전에 미결제 잔고가 있는지 확인
+        # 잔고가 있으면 포지션 업데이트
+        self.req_opw30003()
 
         # 선물틱차트조회
         self.set_input_value("종목코드", self.code_symbol)
@@ -167,7 +198,8 @@ class Kiwoom_NQ100(QAxWidget):
         self.dynamicCall("SetInputValue(QString, QString)", id, value)
 
     def comm_rq_data(self, rqname, trcode, next, screen_no):
-        self.dynamicCall("CommRqData(QString, QString, QString, QString)", rqname, trcode, next, screen_no)
+        ret = self.dynamicCall("CommRqData(QString, QString, QString, QString)", rqname, trcode, next, screen_no)
+        return ret
 
     def _comm_get_data(self, sTrCode, sRQName, index, item_name):
         ret = self.dynamicCall("GetCommData(QString, QString, int, QString)", sTrCode,
@@ -201,7 +233,8 @@ class Kiwoom_NQ100(QAxWidget):
 
             data_cnt = self._get_repeat_cnt(sTrCode, sRQName)
 
-            for i in range(0, data_cnt):
+            #for i in range(0, data_cnt):
+            for i in range(0, 100):
                 dt = pd.to_datetime(self._comm_get_data(sTrCode, sRQName, i, "체결시간"))
                 open = abs(float(self._comm_get_data(sTrCode, sRQName, i, "시가")))
                 high = abs(float(self._comm_get_data(sTrCode, sRQName, i, "고가")))
@@ -236,7 +269,8 @@ class Kiwoom_NQ100(QAxWidget):
             data_cnt = self._get_repeat_cnt(sTrCode, sRQName)
 
 
-            for i in range(0, data_cnt):
+            #for i in range(0, data_cnt):
+            for i in range(0, 100):
                 dt = pd.to_datetime(self._comm_get_data(sTrCode, sRQName, i, "체결시간"))
                 open = abs(float(self._comm_get_data(sTrCode, sRQName, i, "시가")))
                 high = abs(float(self._comm_get_data(sTrCode, sRQName, i, "고가")))
@@ -266,26 +300,27 @@ class Kiwoom_NQ100(QAxWidget):
 
             s_qty = int(self._comm_get_data(sTrCode, sRQName, 0, "매도수량"))
             l_qty = int(self._comm_get_data(sTrCode, sRQName, 0, "매수수량"))
-            o_pnl = float(self._comm_get_data(sTrCode, sRQName, 0, "총평가금액")) / 100
-            c_pnl = float(self._comm_get_data(sTrCode, sRQName, 0, "실현수익금액")) / 100
+            pl = float(self._comm_get_data(sTrCode, sRQName, 0, "총평가금액")) / 100
+            self.position.r_pl = float(self._comm_get_data(sTrCode, sRQName, 0, "실현수익금액")) / 100
 
             # 전체 미결제잔고 내역 출력
-            print(f"[미결제잔고내역-전체] 매도수량: {s_qty}, 매수수량: {l_qty}, 평가손익($): {o_pnl}, 실현손익($): {c_pnl}")
+            print(f"[미결제잔고내역-전체] 매도수량: {s_qty}, 매수수량: {l_qty}, 평가손익(원): {pl}, 실현손익(원): {self.position.r_pl}")
 
             data_cnt = self._get_repeat_cnt(sTrCode, sRQName)
 
             for i in range(0, data_cnt):
-                code = self._comm_get_data(sTrCode, sRQName, i, "종목코드")
-                gb = '매수' if self._comm_get_data(sTrCode, sRQName, i, "매도수구분") == '2' else '매도'
-                qty = int(self._comm_get_data(sTrCode, sRQName, i, "수량"))
-                c_qty = int(self._comm_get_data(sTrCode, sRQName, i, "청산가능"))
-                a_price = float(self._comm_get_data(sTrCode, sRQName, i, "평균단가"))
-                c_price = float(self._comm_get_data(sTrCode, sRQName, i, "현재가격"))
-                pnl = float(self._comm_get_data(sTrCode, sRQName, i, "평가손익")) / 100
+                self.position.code = self._comm_get_data(sTrCode, sRQName, i, "종목코드")
+                #gb = '매수' if self._comm_get_data(sTrCode, sRQName, i, "매도수구분") == '2' else '매도'
+                self.position.gb = int(self._comm_get_data(sTrCode, sRQName, i, "매도수구분"))
+                self.position.qty = int(self._comm_get_data(sTrCode, sRQName, i, "수량"))
+                self.position.d_qty = int(self._comm_get_data(sTrCode, sRQName, i, "청산가능"))
+                self.position.a_price = float(self._comm_get_data(sTrCode, sRQName, i, "평균단가"))
+                self.position.c_price = float(self._comm_get_data(sTrCode, sRQName, i, "현재가격"))
+                self.position.pl = float(self._comm_get_data(sTrCode, sRQName, i, "평가손익")) / 100
 
-                print(f"[미결제잔고내역-{code}] 매도수구분: {gb}, "
-                      f"수량: {qty}, 청산가능: {c_qty}, "
-                      f"평단가: {a_price}, 현재가: {c_price}, 평가손익($): {pnl}")
+                print(f"[미결제잔고내역-{self.position.code}] 매도수구분: {self.position.gb}, "
+                      f"수량: {self.position.qty}, 청산가능: {self.position.d_qty}, "
+                      f"평단가: {self.position.a_price}, 현재가: {self.position.c_price}, 평가손익($): {self.position.pl}")
 
             """
                 jango = pd.DataFrame(
@@ -331,7 +366,6 @@ class Kiwoom_NQ100(QAxWidget):
             self.o_price = float(self.get_chejan_data(901))  # 주문가
             self.o_dt = datetime.strptime(self.get_chejan_data(908),'%Y%m%d%H%M%S%f')  # 주문시간
 
-
             print(f"[주문내역] 주문시간: {self.o_dt}, 주문상태: {o_state}, 구분: {o_gb}, 주문가격: {self.o_price}, 주문수량: {o_qty} ")
 
             pass
@@ -362,6 +396,10 @@ class Kiwoom_NQ100(QAxWidget):
 
                 print(f"[체결내역] 체결시간: {self.t_dt}({delta}초), 체결가: {self.t_price:.2f}({delta2:.2f}), 주문상태: {t_state}, 구분: {t_gb}, 체결량: {t_qty}, 미체결: {t_r_qty},  "
                       f" 청산가능: {t_c_qty}")
+
+                # 미결제잔고내역조회 (opw30003)
+                # 체결후 포지션(잔고) 업데이트
+                self.req_opw30003()
 
             pass
 
@@ -564,10 +602,20 @@ class Kiwoom_NQ100(QAxWidget):
 
         # 선물틱차트조회
         self.set_input_value("계좌번호", self.future_accno) #7018311472
-        self.set_input_value("비밀번호", '')
+        self.set_input_value("비밀번호", "") # 미입력시 -301 에러
         self.set_input_value("비밀번호입력매체", "00")
-        self.set_input_value("통화코드", "USD") #통화코드 = USD, KRW, JPY, HKD, CNY
-        self.comm_rq_data("미결제잔고내역조회","opw30003","", self.get_screen_number())
+        self.set_input_value("통화코드", "KRW") #통화코드 = USD, KRW, JPY, HKD, CNY
+        ret = self.comm_rq_data("미결제잔고내역조회","opw30003","", self.get_screen_number())
+
+        """
+        #print(f"ret = {ret}")
+        # 정상처리가 안되면 메세지 박스에 에러코드 출력하고 멈춰있기
+        if ret != 0:
+            #QMessageBox.about(self, "message", str(ret))
+            QMessageBox.about(self, "message", "비밀번호를 입력하세요")
+            
+        """
+
 
 
     def action_start(self):
@@ -663,6 +711,9 @@ if __name__ == "__main__":
     try:
         app = QApplication(sys.argv)
         hts = Kiwoom_NQ100()
+
+        #QMessageBox.about(hts, "message", "비번입력")
+
         window = Window(hts)
         window.show()
 
