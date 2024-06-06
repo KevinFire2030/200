@@ -242,6 +242,15 @@ class Kiwoom_NQ100(QAxWidget):
         self._create_kiwoom_instance()
         self._set_signal_slots()
 
+        # 시간 측정
+        self.s_dt = 0
+        self.e_dt = 0
+
+
+        # 이벤트 루프
+        self.tr_event_loop = QEventLoop()
+        self.login_event_loop = QEventLoop()
+
         self.comm_connect()
 
         # 계좌정보
@@ -284,7 +293,10 @@ class Kiwoom_NQ100(QAxWidget):
         # 미결제잔고내역조회 (opw30003)
         # 프로그램 시작전에 미결제 잔고가 있는지 확인
         # 잔고가 있으면 포지션 업데이트
-        self.req_opw30003()
+        # 비밀번호 선 입력 문제 해결 필요
+        # self.req_opw30003()
+
+
 
         # 선물틱차트조회
         self.set_input_value("종목코드", self.code_symbol)
@@ -308,7 +320,6 @@ class Kiwoom_NQ100(QAxWidget):
 
     def comm_connect(self):
         self.dynamicCall("CommConnect(int)", 1)
-        self.login_event_loop = QEventLoop()
         self.login_event_loop.exec_()
 
     def on_event_connect(self, err_code):
@@ -474,6 +485,13 @@ class Kiwoom_NQ100(QAxWidget):
                           f"수량: {self.position.qty}, 청산가능: {self.position.d_qty}, "
                           f"평단가: {self.position.a_price}, 현재가: {self.position.c_price}, 평가손익($): {self.position.pl}, "
                           f"수수료: {self.position.qty}")
+
+
+            self.tr_event_loop.exit()
+
+
+
+
 
 
     def on_receive_msg(self, screen_number, rq_name, tr_code, msg):
@@ -762,6 +780,21 @@ class Kiwoom_NQ100(QAxWidget):
         self.set_input_value("비밀번호입력매체", "00")
         self.set_input_value("통화코드", "KRW") #통화코드 = USD, KRW, JPY, HKD, CNY
         ret = self.comm_rq_data("미결제잔고내역조회","opw30003","", self.get_screen_number())
+
+        # 시작 시간
+        self.s_dt = datetime.today()
+
+        self.tr_event_loop.exec_()
+
+        # 종료 시간
+        self.e_dt = datetime.today()
+
+        # 실행 시간
+        delta = (self.e_dt - self.s_dt).total_seconds()
+
+
+        # (opw30008 실행 시간 0.014014초 (= 2024-06-06 16:20:49.414464 - 2024-06-06 16:20:49.400450)
+        print(f"(opw30008 실행 시간 {delta}초 (= {self.e_dt} - {self.s_dt})")
 
         """
         #print(f"ret = {ret}")
