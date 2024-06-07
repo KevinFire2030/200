@@ -88,6 +88,19 @@ class Position:
     def __init__(self, broker: 'Kiwoom_NQ100'):
         self.__broker = broker
 
+        # 주문-체결 Delta
+        self.o_price = 0 # order price, 주문가
+        self.t_price = 0 # trade price, 체결가
+        self.d_price = 0 # 체결시 주문-체결 가격 Delta (매수시 = self.o_price - self.t_price, 매도시 = self.t_price - self.o_price )
+
+        self.o_eN = 0  # order entry N, 주문시 N
+        self.t_eN = 0  # trade entry N, 체결시 N
+        self.d_eN = 0  # 체결시 주문-체결 eN Delta (= self.t_eN - self.o_eN)
+
+        self.o_sp = 0  # order stop price, 주문시 stop price (매수시 = self.o_price - self.o_eN * 2, 매도시 = self.o_price + self.o_eN * 2)
+        self.t_sp = 0  # trade stop price, 체결시 stop price (매수시 = self.t_price - self.t_eN * 2, 매도시 = self.t_price + self.t_eN * 2)
+        self.d_sp = 0  # 체결시 주문-체결 sp Delta (= self.t_sp - self.o_sp)
+
         # OnReceiveTrData() 함수에서 req_opw30003() 요청에 대한 Tr 수신시  업데이트 변수
         # 청산시 초기화
         self.code = '' # 종목이 여러 종목 일수 있지만 일단 단일종목만
@@ -322,6 +335,7 @@ class Kiwoom_NQ100(QAxWidget):
         self.atr_periods = 20
         self.sys1_entry = 20
         self.sys1_exit = 10
+        self.unit_limit = 10
 
         # 체잔 주문/체결 시간
         self.o_dt = 0
@@ -501,6 +515,16 @@ class Kiwoom_NQ100(QAxWidget):
                 self.position.r_pl_KRW = 0
                 self.position.pl_pct = 0
 
+                self.position.o_price = 0
+                self.position.o_sp = 0
+                self.position.o_eN = 0
+
+                self.position.t_price = 0
+                self.position.t_sp = 0
+                self.position.t_eN = 0
+
+
+
                 self.position.commission = 1
 
                 print(f"[미결제잔고내역-청산] 포지션 초기화")
@@ -642,6 +666,8 @@ class Kiwoom_NQ100(QAxWidget):
 
                 self.t_dt = datetime.strptime(self.get_chejan_data(908),'%Y%m%d%H%M%S%f')  # 체결수신시간
 
+                ######## 주문-체결 오차
+
                 # 주문-체결 시간 델타
                 delta = (self.t_dt - self.o_dt).total_seconds()
 
@@ -652,10 +678,21 @@ class Kiwoom_NQ100(QAxWidget):
                 # 청산가능 수량
                 t_c_qty = int(self.get_chejan_data(50711))  # 미결제청산가능수량, c = close
 
+                ######## 주문-체결 오차 추가 구현
+                self.position.t_price = self.t_price
+                self.position.t_eN = self.ohlcv.N.iloc[-1]
+                self.position.t_sp = (self.position.t_price - 2 * self.position.t_eN) if t_gb == '매수' else (self.position.t_price + 2 * self.position.t_eN)
+
+                self.position.d_price = (self.position.o_price - self.position.t_price) if t_gb == '매수' else (self.position.t_price - self.position.o_price)
+                self.position.d_eN = self.position.t_eN - self.position.o_eN
+                self.position.d_sp = self.position.t_sp - self.position.o_sp
 
                 print(f"[체결내역] 체결시간: {self.t_dt}({delta}초), 체결가: {self.t_price:.2f}({delta2:.2f}), 주문상태: {t_state}, 구분: {t_gb}, 체결량: {t_qty}, 미체결: {t_r_qty},  "
                       f" 청산가능: {t_c_qty}")
                 print(f"[체결내역-참고] 원화환율: {self.exRate}, 종목수수료: {self.commission}")
+
+                print(f"[주문체결 델타] 시간: {delta}, 가격: {self.position.d_price}, eN: {self.position.d_eN}, sp: {self.position.d_sp}")
+
 
             # 미결제잔고내역조회 (opw30003)
             # 체결후 포지션(잔고) 업데이트
@@ -731,18 +768,130 @@ class Kiwoom_NQ100(QAxWidget):
 
     def _run_system(self):
 
-        price = self.ohlcv.Close.iloc[-1]
+        # Breakouts과 N계산
+        df = self.ohlcv[-30:]
+        df = self._calc_breakouts(df)
+        df = self._calc_N(df)
+
+        # ohlcv에 시스템 1의 Breakouts 추가
+        self.ohlcv.S1_EL.iloc[-2] = df.S1_EL.iloc[-2]
+        self.ohlcv.S1_ES.iloc[-2] = df.S1_ES.iloc[-2]
+        self.ohlcv.S1_ExL.iloc[-2] = df.S1_ExL.iloc[-2]
+        self.ohlcv.S1_ExS.iloc[-2] = df.S1_ExS.iloc[-2]
+
+        # ohlcv에 N 추가
+        self.ohlcv.N.iloc[-2] = df.N.iloc[-2]
+
+        # 현재가격
+        price = self.ohlcv.Close.iloc[-2]
 
         # 시스템 1
-        S1_EL = self.ohlcv.S1_EL.iloc[-1]
-        S1_ES = self.ohlcv.S1_ES.iloc[-1]
+        S1_EL = self.ohlcv.S1_EL.iloc[-2]
+        S1_ES = self.ohlcv.S1_ES.iloc[-2]
 
-        S1_ExL = self.ohlcv.S1_ExL.iloc[-1]
-        S1_ExS = self.ohlcv.S1_ExS.iloc[-1]
+        S1_ExL = self.ohlcv.S1_ExL.iloc[-2]
+        S1_ExS = self.ohlcv.S1_ExS.iloc[-2]
 
-        N = self.ohlcv.N.iloc[-1]
+        N = self.ohlcv.N.iloc[-2]
 
-        print(f"_run_system")
+        if self.position.qty == 0:
+
+            if price == S1_EL:
+
+
+                self.position.o_price = price
+                self.position.o_eN = N
+                self.position.o_sp = price - 2 * N
+
+
+                # 지정가 매수 주문
+
+                self.send_order2(self.future_accno, "", self.code_symbol, self.get_order_gb('매수'),
+                                 self.get_order_type('지정가'), 1, price, \
+                                 '0', '', '0', '')
+
+                print(f"[롱포지션 진입] units_size = 1")
+
+
+            elif price == S1_ES:
+                # 지정가 매도 주문
+
+                self.position.o_price = price
+                self.position.o_eN = N
+                self.position.o_sp = price + 2 * N
+
+                # 지정가 매수 주문
+
+                self.send_order2(self.future_accno, "", self.code_symbol, self.get_order_gb('매도'),
+                                 self.get_order_type('지정가'), 1, price, \
+                                 '0', '', '0', '')
+
+                print(f"[숏포지션 진입] units_size = 1")
+
+        # 포지션이 있으면
+        else:
+
+            print(
+                f"[피라미딩] 롱: {self.position.o_price + self.position.o_eN}, 숏: {self.position.o_price - self.position.o_eN}, 진입가: : {self.position.o_price}, 진입N: : {self.position.o_eN} ")
+
+            if self.position.gb == 2:  # 롱 (매수)
+
+
+                # Check to exit existing long position
+                if price == S1_ExL:
+                    print(f"[롱포지션 청산]")
+                    self.position.close()
+
+                elif price <= self.position.o_sp:
+                    print(f"[롱포지션 손절]")
+                    self.position.close()
+
+                # Check to pyramid existing position
+                elif self.position.qty <= self.unit_limit:
+
+
+                    if price >= self.position.o_price + self.position.o_eN:
+
+                        self.position.o_price = price
+                        self.position.o_eN = N
+                        self.position.o_sp = price - 2 * N
+
+                        # 지정가 매수 주문
+
+                        self.send_order2(self.future_accno, "", self.code_symbol, self.get_order_gb('매수'),
+                                         self.get_order_type('지정가'), 1, price, \
+                                         '0', '', '0', '')
+
+                        print(
+                            f"[롱포지션 피라미딩] 현재가 {price} > 롱피라미딩 {self.position.o_price + self.position.o_eN}, ep: {self.position.o_price}, eN: {self.position.o_eN} ")
+
+            if self.position.gb == 1:  # 숏 (매도)
+
+                # Check to exit existing short position
+                if price == S1_ExS:
+                    print(f"[숏포지션 청산]")
+                    self.position.close()
+
+                elif price >= self.position.o_sp:
+                    print(f"[숏포지션 손절]")
+                    self.position.close()
+
+                # Check to pyramid existing position
+                elif self.position.qty <= self.unit_limit:
+
+                    if price <= self.position.o_price - self.position.o_eN:
+                        self.position.o_price = price
+                        self.position.o_eN = N
+                        self.position.o_sp = price + 2 * N
+
+                        # 지정가 매도 주문
+
+                        self.send_order2(self.future_accno, "", self.code_symbol, self.get_order_gb('매도'),
+                                         self.get_order_type('지정가'), 1, price, \
+                                         '0', '', '0', '')
+
+                        print(
+                            f"[숏포지션 피라미딩] 현재가 {price} > 숏피라미딩 {self.position.o_price - self.position.o_eN}, ep: {self.position.o_price}, eN: {self.position.o_eN} ")
 
         pass
 
