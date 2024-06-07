@@ -70,6 +70,8 @@ class Window(QMainWindow, main_form):
 
         # 포지션 일괄 청산
         self.pushButton_3.clicked.connect(self.hts.position.close)
+        # 미체결 주문 일괄 취소
+        self.pushButton_16.clicked.connect(self.hts.order.cancle)
 
         pass
 
@@ -117,17 +119,17 @@ class Position:
             p_delta = self.a_price - c_price if self.is_short() else c_price - self.a_price
             # 수량과 레버이지를 곱해 손익 계산
             # 평가(청산) 손익 ($)
-            pl = p_delta * self.qty * self.get_point_value(self.code)
+            pl = round(p_delta * self.qty * self.get_point_value(self.code), 1)
             # 평가(청산) 손익 (원)
-            pl_KRW = pl * self.get_exRate()
+            pl_KRW = round(pl * self.get_exRate(), 0)
             # 실손익 ($)
-            r_pl = pl - self.get_commission() * self.qty
+            r_pl = round(pl - self.get_commission() * self.qty, 1)
             # 모투 수수료 적용 for 검증
             #r_pl = pl - self.commission * self.qty
             # 실손익 (원)
-            r_pl_KRW = r_pl * self.get_exRate()
+            r_pl_KRW = round(r_pl * self.get_exRate(), 0)
             # 수익률
-            pl_pct = round(p_delta / self.a_price * 100,2)
+            pl_pct = round(p_delta / self.a_price * 100, 2)
 
             # 포지션 업데이트
 
@@ -205,6 +207,8 @@ class Position:
         # 미체결주문이 있는지 확인
         # 있으면 모두(일괄) 취소
 
+        self.__broker.order.cancle()
+
         # 미체결주문이 없고 청산가능 수량이 1 이상인지 확인
 
         if (self.qty == self.d_qty) and self.d_qty > 0:
@@ -236,6 +240,37 @@ class Position:
         return self.gb == 1
 
 
+class Order:
+    def __init__(self, broker: 'Kiwoom_NQ100'):
+        self.__broker = broker
+
+
+        self.pending = pd.DataFrame(columns=['주문번호', '종목코드', '주문유형', '매도수구분', '주문수량', '체결수량', '미체결수량', '주문표시가격', '주문가격', '조건표시가격', '상태구분', '통화코드', '주문시각', '원주문번호'])
+
+    def cancle(self):
+
+        # 된다! 하면된다! 할수 있다! Just Do It Now!!
+
+        # 미체결 주문 확인
+        self.__broker.req_opw30001()
+
+        if len(self.pending) >= 1:
+
+
+            for i in range(0,len(self.pending)):
+
+                gb = 3 if self.pending.loc[i,"매도수구분"] == 1 else 4 # 주문 유형, 3: 매도 취소, 4:매수 취소
+                code = self.pending.loc[i,"종목코드"]
+                qty = self.pending.loc[i,"주문수량"]
+                o_num = str(self.pending.loc[i, "주문번호"])
+
+                # 미체결주문 취소
+                self.__broker.send_order("미체결주문 취소", self.__broker.get_screen_number(), self.__broker.future_accno, \
+                                         gb, code, qty, '', '', '', o_num)
+
+
+
+
 class Kiwoom_NQ100(QAxWidget):
     def __init__(self):
         super().__init__()
@@ -249,6 +284,7 @@ class Kiwoom_NQ100(QAxWidget):
 
         # 이벤트 루프
         self.tr_event_loop = QEventLoop()
+        self.tr_opw30001_event_loop = QEventLoop()
         self.login_event_loop = QEventLoop()
 
         self.comm_connect()
@@ -261,6 +297,9 @@ class Kiwoom_NQ100(QAxWidget):
         self.position = Position(self)
         self.exRate = 1
         self.commission = 1
+
+        # 미체결주문
+        self.order = Order(self)
 
 
         # 실시간 틱차트 (t : tick, c = current)
@@ -470,6 +509,8 @@ class Kiwoom_NQ100(QAxWidget):
 
                 data_cnt = self._get_repeat_cnt(sTrCode, sRQName)
 
+
+
                 for i in range(0, data_cnt):
                     self.position.code = self._comm_get_data(sTrCode, sRQName, i, "종목코드")
                     #gb = '매수' if self._comm_get_data(sTrCode, sRQName, i, "매도수구분") == '2' else '매도'
@@ -488,6 +529,58 @@ class Kiwoom_NQ100(QAxWidget):
 
 
             self.tr_event_loop.exit()
+
+        elif sRQName == "미체결내역조회":
+
+            data_cnt = self._get_repeat_cnt(sTrCode, sRQName)
+
+            print(f"[미체결내역조회] 미체결 주문 : {data_cnt}건")
+
+            if data_cnt == 0:
+
+                # 초기화
+                self.order.pending = pd.DataFrame()
+
+                #print(f"미체결 주문이 없습니다.")
+
+            else:
+
+                # 초기화
+                self.order.pending = pd.DataFrame(columns=['주문번호', '종목코드', '주문유형', '매도수구분', '주문수량', '체결수량', '미체결수량', '주문표시가격', '주문가격', '조건표시가격', '상태구분', '통화코드', '주문시각', '원주문번호'])
+
+                for i in range(0, data_cnt):
+
+                    num = int(self._comm_get_data(sTrCode, sRQName, i, "주문번호")) # '000000607019560', 앞에 0을 없애기 위해 int() 형변환
+                    code = self._comm_get_data(sTrCode, sRQName, i, "종목코드")
+                    type = int(self._comm_get_data(sTrCode, sRQName, i, "주문유형")) # 해외주문유형 = 1:시장가, 2:지정가, 3:STOP, 4:StopLimit, 5:OCO, 6:IF DONE
+                    gb = int(self._comm_get_data(sTrCode, sRQName, i, "매도수구분")) # 1: 매도, 2: 매수
+                    o_qty = int(self._comm_get_data(sTrCode, sRQName, i, "주문수량")) # order qty
+                    d_qty = int(self._comm_get_data(sTrCode, sRQName, i, "체결수량")) # done qty, 체결수량
+                    p_qty = int(self._comm_get_data(sTrCode, sRQName, i, "미체결수량")) # pending qty, 미체결수량
+                    o_dprice = self._comm_get_data(sTrCode, sRQName, i, "주문표시가격")  # order_display_price, 주문표시가격
+                    o_dprice = float(o_dprice) if o_dprice != '' else 0
+                    o_price = self._comm_get_data(sTrCode, sRQName, i, "주문가격")  # order_price, 주문가격, 시장가
+                    o_price = float(o_price) if o_price != '' else 0
+                    c_dprice = self._comm_get_data(sTrCode, sRQName, i, "조건표시가격")  # condition_display_price, 조건표시가격
+                    c_dprice = float(c_dprice) if c_dprice != '' else 0
+                    state = int(self._comm_get_data(sTrCode, sRQName, i, "상태구분"))  # 상태구분, 1: 접수, 2: 확인, 3. 체결
+                    c_code = self._comm_get_data(sTrCode, sRQName, i, "통화코드")  # currency_code
+                    o_dt = self._comm_get_data(sTrCode, sRQName, i, "주문시각")  # order_datatime, 주문시각, '06/07 15:11:03'
+                    o_num = int(self._comm_get_data(sTrCode, sRQName, i, "원주문번호")) # origianl order number
+
+                    p_order = pd.DataFrame(
+                        {'주문번호': num, '종목코드': code, '주문유형': type, '매도수구분': gb, '주문수량': o_qty, \
+                         '체결수량': d_qty, '미체결수량': p_qty, '주문표시가격': o_dprice, '주문가격': o_price,
+                         '조건표시가격': c_dprice, '상태구분': state, '통화코드': c_code, '주문시각': o_dt, '원주문번호': o_num}, index=[0])
+
+                    self.order.pending = pd.concat([p_order, self.order.pending], ignore_index=True)
+
+
+            self.tr_opw30001_event_loop.exit()
+
+
+
+            pass
 
 
 
@@ -728,6 +821,24 @@ class Kiwoom_NQ100(QAxWidget):
 
     """
 
+    def send_order(self, sRQName, sScreenNo, sAccNo, nOrderType, sCode, nQty, sPrice, sStop, sHogaGb, sOrgOrderNo):
+        if not (isinstance(sRQName, str)
+                and isinstance(sScreenNo, str)
+                and isinstance(sAccNo, str)
+                and isinstance(nOrderType, int)
+                and isinstance(sCode, str)
+                and isinstance(nQty, int)
+                and isinstance(sPrice, str)
+                and isinstance(sStop, str)
+                and isinstance(sHogaGb, str)
+                and isinstance(sOrgOrderNo, str)):
+            print("Error : ParameterTypeError by SendOrder")
+
+        error_code = self.dynamicCall(
+            "SendOrder(QString, QString, QString, int, QString, int, QString, QString, QString, QString)",
+            [sRQName, sScreenNo, sAccNo, nOrderType, sCode, nQty, sPrice, sStop, sHogaGb, sOrgOrderNo])
+        print('error_code: ' + str(error_code))
+        return error_code
 
     def send_order2(self, account_num, password, code, ls_gb, order_type, qty, price, stop_gb, stop_price, limit_gb, limit_price):
         self.set_input_value("계좌번호", account_num)
@@ -753,6 +864,14 @@ class Kiwoom_NQ100(QAxWidget):
             return '1'
         elif type == '매수':
             return '2'
+        elif type == '매수취소':
+            return '3'
+        elif type == '매도취소':
+            return '4'
+        elif type == '매수정정':
+            return '5'
+        elif type == '매도정정':
+            return '6'
 
     def get_order_type(self, type):
         if type == '시장가':
@@ -769,12 +888,40 @@ class Kiwoom_NQ100(QAxWidget):
             return '6'
 
 
-############# 테스트 버튼 action ################
+############# 테스트 버튼 action, TR 요청 ################
+
+    def req_opw30001(self):
+        #QMessageBox.about(self, "message", "req_opw30001")
+
+        # 미결체결내역조회
+        self.set_input_value("계좌번호", self.future_accno)  # 7018311472
+        self.set_input_value("비밀번호", "")  # 미입력시 -301 에러
+        self.set_input_value("비밀번호입력매체", "00")
+        self.set_input_value("종목코드", "") #종목코드 = 전체(space), 전문 조회할 종목코드
+        self.set_input_value("통화코드", "")  #통화코드 = 전체(space), USD, EUR, GBP, JPY, CHF, CAD, AUD, NZD
+        self.set_input_value("매도수구분", "") #매도수구분 = 전체(space), 1:매도, 2:매수
+        ret = self.comm_rq_data("미체결내역조회", "opw30001", "", self.get_screen_number())
+
+        # 시작 시간
+        self.s_dt = datetime.today()
+
+        self.tr_opw30001_event_loop.exec_()
+
+        # 종료 시간
+        self.e_dt = datetime.today()
+
+        # 실행 시간
+        delta = (self.e_dt - self.s_dt).total_seconds()
+
+        #(opw30001 실행 시간 0.013012초 (= 2024-06-07 13:46:39.389896 - 2024-06-07 13:46:39.376884)
+        print(f"(opw30001 실행 시간 {delta}초 (= {self.e_dt} - {self.s_dt})")
+
+
 
     def req_opw30003(self):
         #QMessageBox.about(self, "message", "req_opw30003")
 
-        # 선물틱차트조회
+        # 미결제잔고내역조회
         self.set_input_value("계좌번호", self.future_accno) #7018311472
         self.set_input_value("비밀번호", "") # 미입력시 -301 에러
         self.set_input_value("비밀번호입력매체", "00")
