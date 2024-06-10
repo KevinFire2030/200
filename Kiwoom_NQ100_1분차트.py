@@ -715,10 +715,12 @@ class Kiwoom_NQ100(QAxWidget):
             dt = self.ohlcv.date_time.iloc[-1]
             delta = n_dt.minute - dt.minute
 
+            print(f"delta: {delta}")
+
             c_price = abs(float(self._get_comm_real_data(sCode, 10)))  # 현재가(체결가)
             c_volume = abs(int(self._get_comm_real_data(sCode, 15)))  # 거래량 (+ 매수체결, - 매도체결)
 
-            if delta < self.base_min_unit:
+            if delta < self.base_min_unit and delta >=0 :
 
                 # 고가와 저가 업데이트
                 if self.ohlcv.High.iloc[-1] < c_price:
