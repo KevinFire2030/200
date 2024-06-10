@@ -831,11 +831,13 @@ class Kiwoom_NQ100(QAxWidget):
         # 포지션이 있으면
         else:
 
-            print(
-                f"[피라미딩] 롱: {self.position.o_price + self.position.o_eN}, 숏: {self.position.o_price - self.position.o_eN}, 진입가: : {self.position.o_price}, 진입N: : {self.position.o_eN} ")
+
 
             if self.position.gb == 2:  # 롱 (매수)
 
+                print(
+                    f"[현재 포지션: 롱] 현재가: {price}, 평단가: {self.position.a_price}, 마지막 진입가: {self.position.o_price}, "
+                    f"손절가: {self.position.o_price - 2 * self.position.o_eN}, 피라미딩: {self.position.o_price + self.position.o_eN}, eN:{self.position.o_eN} ")
 
                 # Check to exit existing long position
                 if price == S1_ExL:
@@ -852,6 +854,9 @@ class Kiwoom_NQ100(QAxWidget):
 
                     if price >= self.position.o_price + self.position.o_eN:
 
+                        print(
+                            f"[롱포지션 피라미딩] 현재가 {price} >= 롱피라미딩 {self.position.o_price + self.position.o_eN}, ep: {self.position.o_price}, eN: {self.position.o_eN} ")
+
                         self.position.o_price = price
                         self.position.o_eN = N
                         self.position.o_sp = price - 2 * N
@@ -862,10 +867,13 @@ class Kiwoom_NQ100(QAxWidget):
                                          self.get_order_type('지정가'), 1, price, \
                                          '0', '', '0', '')
 
-                        print(
-                            f"[롱포지션 피라미딩] 현재가 {price} > 롱피라미딩 {self.position.o_price + self.position.o_eN}, ep: {self.position.o_price}, eN: {self.position.o_eN} ")
+
 
             if self.position.gb == 1:  # 숏 (매도)
+
+                print(
+                    f"[현재 포지션: 숏] 현재가: {price}, 평단가: {self.position.a_price}, 마지막 진입가: {self.position.o_price}, "
+                    f"손절가: {self.position.o_price + 2 * self.position.o_eN}, 피라미딩: {self.position.o_price - self.position.o_eN}, eN:{self.position.o_eN} ")
 
                 # Check to exit existing short position
                 if price == S1_ExS:
@@ -880,6 +888,10 @@ class Kiwoom_NQ100(QAxWidget):
                 elif self.position.qty <= self.unit_limit:
 
                     if price <= self.position.o_price - self.position.o_eN:
+
+                        print(
+                            f"[숏포지션 피라미딩] 현재가 {price} <= 숏피라미딩 {self.position.o_price - self.position.o_eN}, ep: {self.position.o_price}, eN: {self.position.o_eN} ")
+
                         self.position.o_price = price
                         self.position.o_eN = N
                         self.position.o_sp = price + 2 * N
@@ -890,8 +902,7 @@ class Kiwoom_NQ100(QAxWidget):
                                          self.get_order_type('지정가'), 1, price, \
                                          '0', '', '0', '')
 
-                        print(
-                            f"[숏포지션 피라미딩] 현재가 {price} > 숏피라미딩 {self.position.o_price - self.position.o_eN}, ep: {self.position.o_price}, eN: {self.position.o_eN} ")
+
 
         pass
 
