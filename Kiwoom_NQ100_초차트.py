@@ -325,7 +325,7 @@ class Kiwoom_NQ100(QAxWidget):
 
         self.base_min_unit = 1
         self.base_tick_unit = 120
-        self.base_sec_unit = 5
+        self.base_sec_unit = 1
         self.code_symbol = "MNQM24"  # MNQZ23
         self.t_cnt = 0
 
