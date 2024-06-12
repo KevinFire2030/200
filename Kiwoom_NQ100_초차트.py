@@ -325,7 +325,7 @@ class Kiwoom_NQ100(QAxWidget):
 
         self.base_min_unit = 1
         self.base_tick_unit = 120
-        self.base_sec_unit = 3
+        self.base_sec_unit = 5
         self.code_symbol = "MNQM24"  # MNQZ23
         self.t_cnt = 0
 
@@ -755,7 +755,7 @@ class Kiwoom_NQ100(QAxWidget):
             #s_delta = (n_dt.second // self.base_sec_unit)  - (s_dt.second // self.base_sec_unit)
             s_delta = n_dt.second - s_dt.second
 
-
+            print(f"s_delta: {s_delta} = {n_dt.second} - {s_dt.second}")
 
             """
             if s_delta > self.base_sec_unit :
@@ -808,7 +808,7 @@ class Kiwoom_NQ100(QAxWidget):
                 self.s_ohlcv.Close.iloc[-1] = c_price
                 self.s_ohlcv.Volume.iloc[-1] += c_volume
 
-            elif s_delta  == self.base_sec_unit or s_delta > self.base_sec_unit or s_delta < 0  : # 매분 정초
+            elif s_delta  >= self.base_sec_unit or s_delta < 0  : # 매분 정초
 
                 # 시가와 시간 업데이트
 
@@ -821,7 +821,7 @@ class Kiwoom_NQ100(QAxWidget):
 
                 #
 
-                if s_delta > self.base_sec_unit:
+                if s_delta > self.base_sec_unit or s_delta < 0:
 
                     base_second = n_dt.second - (n_dt.second % self.base_sec_unit)
 
