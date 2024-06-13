@@ -75,6 +75,7 @@ class Broker(QAxWidget):
         # 체잔
         self.chejan = pd.Series({'종목코드': '',
                                  '매도수구분': 0,
+                                 '주문가격': 0,
                                  '체결가격': 0,
                                  '손절가격': 0,
                                  '피라미딩가격': 0,
@@ -297,6 +298,7 @@ class Broker(QAxWidget):
 
                 self.chejan['종목코드'] = self.get_chejan_data(90001)  # 미결제매도수구분
                 self.chejan['매도수구분'] = int(self.get_chejan_data(907))  # 매도수구분
+                self.chejan['주문가격'] = float(self.get_chejan_data(901))  # 주문가격
                 self.chejan['체결가격'] = float(self.get_chejan_data(910))  # 체결가격
                 self.chejan['신규수량'] = int(self.get_chejan_data(13327))  # 신규수량
                 self.chejan['청산수량'] = int(self.get_chejan_data(13328))  # 청산수량
@@ -331,7 +333,8 @@ class Broker(QAxWidget):
 
                 print(f"[체잔] 미결제청산가능수량: {self.chejan['미결제청산가능수량']}, "
                       f"신규수량: {self.chejan['신규수량']}, 청산수량: {self.chejan['청산수량']}, "
-                      f"체결가: {self.chejan['체결가격']}, 손절가: {self.chejan['손절가격']}, 피라미딩가: {self.chejan['피라미딩가격']} ")
+                      f"주문가: {self.chejan['주문가격']}, 체결가: {self.chejan['체결가격']}, "
+                      f"손절가: {self.chejan['손절가격']}, 피라미딩가: {self.chejan['피라미딩가격']} ")
 
 
 
@@ -482,7 +485,7 @@ class Broker(QAxWidget):
 
                     # 지정가 매수 주문
                     self.send_order2("매수 진입", self.accno, "", self.ticker, self.get_order_gb('매수'),
-                                     self.get_order_type('지정가'), 1, '', \
+                                     self.get_order_type('지정가'), 1, price, \
                                      '0', '', '0', '')
 
                     self.chejan_event_loop = False
@@ -493,7 +496,7 @@ class Broker(QAxWidget):
 
                     # 지정가 매도 주문
                     self.send_order2("매도 진입", self.accno, "", self.ticker, self.get_order_gb('매도'),
-                                     self.get_order_type('지정가'), 1, '', \
+                                     self.get_order_type('지정가'), price, '', \
                                      '0', '', '0', '')
 
                     self.chejan_event_loop = False
@@ -508,7 +511,7 @@ class Broker(QAxWidget):
                     # Check to exit existing long position
                     if price == S1_ExL:
 
-                        self.position_close()
+                        self.position_close(price)
 
                         self.chejan_event_loop = False
 
@@ -516,7 +519,7 @@ class Broker(QAxWidget):
 
                     elif price <= self.chejan['손절가격']:
 
-                        self.position_close()
+                        self.position_close(price)
 
                         self.chejan_event_loop = False
 
@@ -529,7 +532,7 @@ class Broker(QAxWidget):
 
                           # 지정가 매수 주문
                           self.send_order2("롱피라미딩", self.accno, "", self.ticker, self.get_order_gb('매수'),
-                                           self.get_order_type('지정가'), 1, '', \
+                                           self.get_order_type('지정가'), 1, price, \
                                            '0', '', '0', '')
 
                           self.chejan_event_loop = False
@@ -544,7 +547,7 @@ class Broker(QAxWidget):
                     # Check to exit existing long position
                     if price == S1_ExS:
 
-                        self.position_close()
+                        self.position_close(price)
 
                         self.chejan_event_loop = False
 
@@ -552,7 +555,7 @@ class Broker(QAxWidget):
 
                     elif price >= self.chejan['손절가격']:
 
-                        self.position_close()
+                        self.position_close(price)
 
                         self.chejan_event_loop = False
 
@@ -564,7 +567,7 @@ class Broker(QAxWidget):
                         if price < self.chejan['피라미딩가격']:
                             # 지정가 매도 주문
                             self.send_order2("숏피라미딩", self.accno, "", self.ticker, self.get_order_gb('매도'),
-                                             self.get_order_type('지정가'), 1, '', \
+                                             self.get_order_type('지정가'), 1, price, \
                                              '0', '', '0', '')
 
                             self.chejan_event_loop = False
@@ -625,20 +628,20 @@ class Broker(QAxWidget):
     def on_receive_msg(self, screen_number, rq_name, tr_code, msg):
         pass
 
-    def position_close(self):
+    def position_close(self, price):
 
         if self.chejan['미결제매도수구분'] == 2:
 
             # 지정가 전량 매도
             self.send_order2("일괄매도", self.accno, "", self.ticker, self.get_order_gb('매도'),
-                             self.get_order_type('지정가'), self.chejan['미결제청산가능수량'], '', \
+                             self.get_order_type('지정가'), self.chejan['미결제청산가능수량'], price, \
                              '0', '', '0', '')
 
         elif self.chejan['미결제매도수구분'] == 1:
 
             # 시장가 전량 매수
             self.send_order2("일괄매수", self.accno, "", self.ticker, self.get_order_gb('매수'),
-                             self.get_order_type('지정가'), self.chejan['미결제청산가능수량'], '', \
+                             self.get_order_type('지정가'), self.chejan['미결제청산가능수량'], price, \
                              '0', '', '0', '')
 
 
