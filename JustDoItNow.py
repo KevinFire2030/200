@@ -316,11 +316,16 @@ class Broker(QAxWidget):
                         if self.chejan['매도수구분'] == 1 \
                         else self.chejan['체결가격'] + self.t_ohlcv.N.iloc[-2]
 
+                    self.chejan_event_loop = True
+
 
                 elif self.chejan['청산수량'] > 0:
 
                     self.chejan['손절가격'] = 0
                     self.chejan['피라미딩가격'] = 0
+
+                    if self.chejan['미결제청산가능수량'] == 0:
+                        self.chejan_event_loop = True
 
 
                 print(f"[체잔] 미결제청산가능수량: {self.chejan['미결제청산가능수량']}, "
@@ -328,7 +333,7 @@ class Broker(QAxWidget):
                       f"손절가격: {self.chejan['손절가격']}, 피라미딩가격: {self.chejan['피라미딩가격']} ")
 
 
-                self.chejan_event_loop = True
+
 
                 pass
 
