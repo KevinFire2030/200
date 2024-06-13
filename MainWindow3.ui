@@ -1,0 +1,73 @@
+<?xml version="1.0" encoding="UTF-8"?>
+<ui version="4.0">
+ <class>MainWindow</class>
+ <widget class="QMainWindow" name="MainWindow">
+  <property name="geometry">
+   <rect>
+    <x>0</x>
+    <y>0</y>
+    <width>800</width>
+    <height>600</height>
+   </rect>
+  </property>
+  <property name="windowTitle">
+   <string>Just Do It Now~!!</string>
+  </property>
+  <widget class="QWidget" name="centralwidget"/>
+  <widget class="QMenuBar" name="menubar">
+   <property name="geometry">
+    <rect>
+     <x>0</x>
+     <y>0</y>
+     <width>800</width>
+     <height>26</height>
+    </rect>
+   </property>
+   <widget class="QMenu" name="menu">
+    <property name="title">
+     <string>자동매매</string>
+    </property>
+    <addaction name="menu_trading_start"/>
+    <addaction name="menu_trading_end"/>
+   </widget>
+   <widget class="QMenu" name="menu_2">
+    <property name="title">
+     <string>주문</string>
+    </property>
+    <addaction name="menu_position_close"/>
+   </widget>
+   <widget class="QMenu" name="menuTR">
+    <property name="title">
+     <string>TR</string>
+    </property>
+    <addaction name="menu_opw30003"/>
+   </widget>
+   <addaction name="menu"/>
+   <addaction name="menu_2"/>
+   <addaction name="menuTR"/>
+  </widget>
+  <widget class="QStatusBar" name="statusbar"/>
+  <action name="menu_trading_start">
+   <property name="text">
+    <string>시작</string>
+   </property>
+  </action>
+  <action name="menu_trading_end">
+   <property name="text">
+    <string>종료</string>
+   </property>
+  </action>
+  <action name="menu_opw30003">
+   <property name="text">
+    <string>opw30003</string>
+   </property>
+  </action>
+  <action name="menu_position_close">
+   <property name="text">
+    <string>일괄청산</string>
+   </property>
+  </action>
+ </widget>
+ <resources/>
+ <connections/>
+</ui>

@@ -76,12 +76,17 @@ class Broker(QAxWidget):
         self.chejan = pd.Series({'종목코드': '',
                                  '매도수구분': 0,
                                  '체결가격': 0,
-                                 '손절가격': 0,
-                                 '피라미딩가격': 0,
+                                 '평균가격': 0,  # 사용자 추가
+                                 '손절가격': 0, # 사용자 추가
+                                 '피라미딩가격': 0, # 사용자 추가
                                  '신규수량': 0,
+                                 '체결수량': 0,
                                  '청산수량': 0,
                                  '미결제매도수구분': 0,
                                  '미결제청산가능수량': 0})
+
+        # 체결가
+        self.trade = pd.DataFrame(columns=['체결가격', '체결수량'])
 
         # 터틀 트레이딩
         """
@@ -298,6 +303,7 @@ class Broker(QAxWidget):
                 self.chejan['종목코드'] = self.get_chejan_data(90001)  # 미결제매도수구분
                 self.chejan['매도수구분'] = int(self.get_chejan_data(907))  # 매도수구분
                 self.chejan['체결가격'] = float(self.get_chejan_data(910))  # 체결가격
+                self.chejan['체결수량'] = float(self.get_chejan_data(911))  # 체결수량
                 self.chejan['신규수량'] = int(self.get_chejan_data(13327))  # 신규수량
                 self.chejan['청산수량'] = int(self.get_chejan_data(13328))  # 청산수량
 
@@ -305,9 +311,24 @@ class Broker(QAxWidget):
                                                 if self.get_chejan_data(50710) != '' else 0 # 미결제매도수구분
                 self.chejan['미결제청산가능수량'] = int(self.get_chejan_data(50711))  # 미결제청산가능수량
 
-                # 손절가/피라미딩 세팅
+                # 평균가/손절가/피라미딩 세팅
                 # 신규 수량일만
                 if self.chejan['신규수량'] > 0:
+
+
+                    # 체결가와 수량을 self.trade에 저장
+                    # 일괄청산일때만 가능
+                    trade = pd.DataFrame(
+                        {'체결가격': self.chejan['체결가격'], '체결수량': self.chejan['체결수량']}, index=[0])
+                    self.trade = pd.concat([self.trade, trade], ignore_index=True)
+
+                    # 평단가 계산
+                    v = (self.trade['체결가격'] * self.trade['체결수량']).sum()
+                    q = self.trade['체결수량'].sum()
+                    a = v / q
+
+
+                    self.chejan['평균가격'] = round(a,2)
 
                     self.chejan['손절가격'] = self.chejan['체결가격'] + self.t_ohlcv.N.iloc[-2] * 2 \
                         if self.chejan['매도수구분'] == 1 \
@@ -322,16 +343,24 @@ class Broker(QAxWidget):
 
                 elif self.chejan['청산수량'] > 0:
 
-                    self.chejan['손절가격'] = 0
-                    self.chejan['피라미딩가격'] = 0
 
                     if self.chejan['미결제청산가능수량'] == 0:
+                        
+                        # 초기화
+
+                        self.chejan['평균가격'] = 0
+                        self.chejan['손절가격'] = 0
+                        self.chejan['피라미딩가격'] = 0
+
+                        self.trade.drop(self.trade.index, axis=0, inplace=True)
+
+                        
                         self.chejan_event_loop = True
 
 
                 print(f"[체잔] 미결제청산가능수량: {self.chejan['미결제청산가능수량']}, "
                       f"신규수량: {self.chejan['신규수량']}, 청산수량: {self.chejan['청산수량']}, "
-                      f"체결가: {self.chejan['체결가격']}, 손절가: {self.chejan['손절가격']}, 피라미딩가: {self.chejan['피라미딩가격']} ")
+                      f"체결가: {self.chejan['체결가격']}, 평단가: {self.chejan['평균가격']} 손절가: {self.chejan['손절가격']}, 피라미딩가: {self.chejan['피라미딩가격']} ")
 
 
 
