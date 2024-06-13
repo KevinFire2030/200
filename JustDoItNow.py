@@ -37,6 +37,8 @@ class Broker(QAxWidget):
         # 이벤트 루프
         self.login_event_loop = QEventLoop()
         self.opw30003_event_loop = QEventLoop()
+        self.chejan_event_loop = True
+
 
         # 스크린 번호
         self.screen_number = 1000
@@ -80,10 +82,12 @@ class Broker(QAxWidget):
                                  '미결제청산가능수량': 0})
 
         # 터틀 트레이딩
+        """
         self.atr_periods = 20
         self.sys1_entry = 20
         self.sys1_exit = 10
         self.unit_limit = 10
+        """
 
         self.turtle = pd.Series({'atr_periods': 20,
                                  'sys1_entry': 20,
@@ -316,6 +320,8 @@ class Broker(QAxWidget):
                       f"신규수량: {self.chejan['신규수량']}, 청산수량: {self.chejan['청산수량']}, "
                       f"손절가격: {self.chejan['손절가격']} ")
 
+                self.chejan_event_loop = True
+
                 pass
 
             # 미결제잔고내역조회 (opw30003)
@@ -433,51 +439,74 @@ class Broker(QAxWidget):
 
         N = self.t_ohlcv.N.iloc[-2]
 
-        # 포지션이 없으면
-        if self.chejan['미결제청산가능수량'] == 0:
 
-            if price == S1_EL:
+        if self.chejan_event_loop:
 
-                # 시가 매수 주문
-                self.send_order2("매수 진입", self.accno, "", self.ticker, self.get_order_gb('매수'),
-                                 self.get_order_type('시장가'), 1, '', \
-                                 '0', '', '0', '')
+            # 포지션이 없으면
+            if self.chejan['미결제청산가능수량'] == 0 :
 
-                print(f"[롱포지션 진입] 미결제청산가능수량: {self.chejan['미결제청산가능수량']}")
+                if price == S1_EL:
 
-            elif price == S1_ES:
+                    # 시가 매수 주문
+                    self.send_order2("매수 진입", self.accno, "", self.ticker, self.get_order_gb('매수'),
+                                     self.get_order_type('시장가'), 1, '', \
+                                     '0', '', '0', '')
 
-                # 시장가 매도 주문
-                self.send_order2("매도 진입", self.accno, "", self.ticker, self.get_order_gb('매도'),
-                                 self.get_order_type('시장가'), 1, '', \
-                                 '0', '', '0', '')
+                    self.chejan_event_loop = False
 
-                print(f"[숏포지션 진입] 미결제청산가능수량: {self.chejan['미결제청산가능수량']}")
+                    print(f"[롱포지션 진입] 미결제청산가능수량: {self.chejan['미결제청산가능수량']}")
 
-        # 포지션이 있으면
-        else:
+                elif price == S1_ES:
 
-            if self.chejan['미결제매도수구분'] == 2:  # 롱 (매수)
+                    # 시장가 매도 주문
+                    self.send_order2("매도 진입", self.accno, "", self.ticker, self.get_order_gb('매도'),
+                                     self.get_order_type('시장가'), 1, '', \
+                                     '0', '', '0', '')
 
-                # Check to exit existing long position
-                if price == S1_ExL:
-                    print(f"[롱포지션 청산]")
-                    self.position_close()
+                    self.chejan_event_loop = False
 
-                elif price <= self.chejan['손절가격']:
-                    print(f"[롱포지션 손절]")
-                    self.position_close()
+                    print(f"[숏포지션 진입] 미결제청산가능수량: {self.chejan['미결제청산가능수량']}")
 
-            elif self.chejan['미결제매도수구분'] == 1:  # 숏 (매도)
+            # 포지션이 있으면
+            else:
 
-                # Check to exit existing long position
-                if price == S1_ExS:
-                    print(f"[숏포지션 청산]")
-                    self.position_close()
+                if self.chejan['미결제매도수구분'] == 2:  # 롱 (매수)
 
-                elif price >= self.chejan['손절가격']:
-                    print(f"[숏포지션 손절]")
-                    self.position_close()
+                    # Check to exit existing long position
+                    if price == S1_ExL:
+
+                        self.position_close()
+
+                        self.chejan_event_loop = False
+
+                        print(f"[롱포지션 청산]")
+
+                    elif price <= self.chejan['손절가격']:
+
+                        self.position_close()
+
+                        self.chejan_event_loop = False
+
+                        print(f"[롱포지션 손절]")
+
+                elif self.chejan['미결제매도수구분'] == 1:  # 숏 (매도)
+
+                    # Check to exit existing long position
+                    if price == S1_ExS:
+
+                        self.position_close()
+
+                        self.chejan_event_loop = False
+
+                        print(f"[숏포지션 청산]")
+
+                    elif price >= self.chejan['손절가격']:
+
+                        self.position_close()
+
+                        self.chejan_event_loop = False
+
+                        print(f"[숏포지션 손절]")
 
 
     def get_order_gb(self, type):
@@ -509,6 +538,7 @@ class Broker(QAxWidget):
             return '6'
 
     def send_order2(self, order_name, account_num, password, code, ls_gb, order_type, qty, price, stop_gb, stop_price, limit_gb, limit_price):
+
         self.set_input_value("계좌번호", account_num)
         self.set_input_value("비밀번호", password)
         self.set_input_value("비밀번호입력매체", "00")
