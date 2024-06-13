@@ -50,9 +50,10 @@ class Broker(QAxWidget):
         self.tick_unit = tick_unit
         self.t_cnt = 0
 
+
         # 차트
         self.t_ohlcv = pd.DataFrame(
-            columns=['date_time', 'Open', 'High', 'Low', 'Close', 'Volume', 'S1_EL', 'S1_ES', 'S1_ExL', 'S1_ExS', 'N'])
+            columns=['date_time', 'Open', 'High', 'Low', 'Close', 'Volume', 'S1_EL', 'S1_ES', 'S1_ExL', 'S1_ExS', 'N', 'S'])
 
         # 자동 매매
         self.system_running = False
@@ -381,7 +382,13 @@ class Broker(QAxWidget):
             delta = n_dt.minute - dt.minute
 
             c_price = abs(float(self._get_comm_real_data(sCode, 10)))  # 현재가(체결가)
-            c_volume = abs(int(self._get_comm_real_data(sCode, 15)))  # 거래량 (+ 매수체결, - 매도체결)
+            volume = int(self._get_comm_real_data(sCode, 15)) # (+ 매수체결, - 매도체결)
+            l_volume = volume if volume > 0 else 0
+            c_volume = abs(volume)  # 거래량
+
+
+            # 체결강도
+
 
             # 틱 카운트 +1 증가
             # 1(시가),2,3,4,0(종가)
@@ -394,15 +401,37 @@ class Broker(QAxWidget):
             if gb == 1:
 
                 # print(f"틱 카운트: {self.t_cnt}, 구분: {gb}, 새틱차트 생성, 시작시간: {c_dt}, 시가(현재가): {c_price:.2f}, 시작수량: {c_volume} ")
+                # 체결강도
+
 
                 ohlcv = pd.DataFrame(
                     {'date_time': n_dt, 'Open': c_price, 'High': 0, 'Low': 100000,
-                     'Close': c_price, 'Volume': c_volume}, index=[0])
+                     'Close': c_price, 'Volume': c_volume, 'S': l_volume}, index=[0])
                 self.t_ohlcv = pd.concat([self.t_ohlcv, ohlcv], ignore_index=True)
+
+                # Breakouts과 N계산
+                df = self.t_ohlcv[-30:]
+                df = self._calc_breakouts(df)
+                df = self._calc_N(df)
+
+                # ohlcv에 시스템 1의 Breakouts 추가
+                self.t_ohlcv.S1_EL.iloc[-2] = df.S1_EL.iloc[-2]
+                self.t_ohlcv.S1_ES.iloc[-2] = df.S1_ES.iloc[-2]
+                self.t_ohlcv.S1_ExL.iloc[-2] = df.S1_ExL.iloc[-2]
+                self.t_ohlcv.S1_ExS.iloc[-2] = df.S1_ExS.iloc[-2]
+
+                # ohlcv에 N 추가
+                self.t_ohlcv.N.iloc[-2] = df.N.iloc[-2]
+
+                # 체결강도를 계산해서 업데이트
+                s_volume = self.t_ohlcv.Volume.iloc[-2] - self.t_ohlcv.S.iloc[-2]
+                self.t_ohlcv.S.iloc[-2] = round(self.t_ohlcv.S.iloc[-2] / s_volume * 100, 0) if s_volume != 0 else -100
+
 
                 # 마지막차트 출력
                 print(f"[{self.tick_unit}틱-{self.t_ohlcv.index[-2]}] 체결시간: {self.t_ohlcv.date_time.iloc[-2]}, "
-                      f"시가: {self.t_ohlcv.Open.iloc[-2]:.2f}, 고가: {self.t_ohlcv.High.iloc[-2]:.2f}, 저가: {self.t_ohlcv.Low.iloc[-2]:.2f}, 종가: {self.t_ohlcv.Close.iloc[-2]:.2f}, 거래량: {self.t_ohlcv.Volume.iloc[-2]}")
+                      f"시가: {self.t_ohlcv.Open.iloc[-2]:.2f}, 고가: {self.t_ohlcv.High.iloc[-2]:.2f}, 저가: {self.t_ohlcv.Low.iloc[-2]:.2f}, 종가: {self.t_ohlcv.Close.iloc[-2]:.2f}, "
+                      f"거래량: {self.t_ohlcv.Volume.iloc[-2]}, 체결강도: {self.t_ohlcv.S.iloc[-2]}")
 
                 # 자동 선물 매매
                 if self.system_running:
@@ -422,23 +451,14 @@ class Broker(QAxWidget):
                 self.t_ohlcv.Close.iloc[-1] = c_price
                 self.t_ohlcv.Volume.iloc[-1] += c_volume
 
+                # 매수 수량 업데이트
+                self.t_ohlcv.S.iloc[-1] += l_volume
+
         pass
 
     def _run_system(self):
 
-        # Breakouts과 N계산
-        df = self.t_ohlcv[-30:]
-        df = self._calc_breakouts(df)
-        df = self._calc_N(df)
 
-        # ohlcv에 시스템 1의 Breakouts 추가
-        self.t_ohlcv.S1_EL.iloc[-2] = df.S1_EL.iloc[-2]
-        self.t_ohlcv.S1_ES.iloc[-2] = df.S1_ES.iloc[-2]
-        self.t_ohlcv.S1_ExL.iloc[-2] = df.S1_ExL.iloc[-2]
-        self.t_ohlcv.S1_ExS.iloc[-2] = df.S1_ExS.iloc[-2]
-
-        # ohlcv에 N 추가
-        self.t_ohlcv.N.iloc[-2] = df.N.iloc[-2]
 
         # 현재가격
         price = self.t_ohlcv.Close.iloc[-2]
@@ -633,7 +653,7 @@ class Fire(QMainWindow, main_form):
 
 
         # Broker 인스턴스 생성
-        self.kiwoom = Broker(self, "MNQM24", 3)
+        self.kiwoom = Broker(self, "MNQM24", 120)
 
         # 키움서버 접속
         self.kiwoom.comm_connect()
