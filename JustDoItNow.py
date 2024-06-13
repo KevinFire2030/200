@@ -76,6 +76,7 @@ class Broker(QAxWidget):
                                  '매도수구분': 0,
                                  '체결가격': 0,
                                  '손절가격': 0,
+                                 '피라미딩가격': 0,
                                  '신규수량': 0,
                                  '청산수량': 0,
                                  '미결제매도수구분': 0,
@@ -303,7 +304,7 @@ class Broker(QAxWidget):
                                                 if self.get_chejan_data(50710) != '' else 0 # 미결제매도수구분
                 self.chejan['미결제청산가능수량'] = int(self.get_chejan_data(50711))  # 미결제청산가능수량
 
-                # 손절가 세팅
+                # 손절가/피라미딩 세팅
                 # 신규 수량일만
                 if self.chejan['신규수량'] > 0:
 
@@ -311,14 +312,21 @@ class Broker(QAxWidget):
                         if self.chejan['매도수구분'] == 1 \
                         else self.chejan['체결가격'] - self.t_ohlcv.N.iloc[-2] * 2
 
+                    self.chejan['피라미딩가격'] = self.chejan['체결가격'] - self.t_ohlcv.N.iloc[-2] \
+                        if self.chejan['매도수구분'] == 1 \
+                        else self.chejan['체결가격'] + self.t_ohlcv.N.iloc[-2]
+
+
                 elif self.chejan['청산수량'] > 0:
 
                     self.chejan['손절가격'] = 0
+                    self.chejan['피라미딩가격'] = 0
 
 
                 print(f"[체잔] 미결제청산가능수량: {self.chejan['미결제청산가능수량']}, "
                       f"신규수량: {self.chejan['신규수량']}, 청산수량: {self.chejan['청산수량']}, "
-                      f"손절가격: {self.chejan['손절가격']} ")
+                      f"손절가격: {self.chejan['손절가격']}, 피라미딩가격: {self.chejan['피라미딩가격']} ")
+
 
                 self.chejan_event_loop = True
 
@@ -447,14 +455,14 @@ class Broker(QAxWidget):
 
                 if price == S1_EL:
 
-                    # 시가 매수 주문
+                    # 시장가 매수 주문
                     self.send_order2("매수 진입", self.accno, "", self.ticker, self.get_order_gb('매수'),
                                      self.get_order_type('시장가'), 1, '', \
                                      '0', '', '0', '')
 
                     self.chejan_event_loop = False
 
-                    print(f"[롱포지션 진입] 미결제청산가능수량: {self.chejan['미결제청산가능수량']}")
+                    print(f"[롱포지션 진입]")
 
                 elif price == S1_ES:
 
@@ -465,7 +473,7 @@ class Broker(QAxWidget):
 
                     self.chejan_event_loop = False
 
-                    print(f"[숏포지션 진입] 미결제청산가능수량: {self.chejan['미결제청산가능수량']}")
+                    print(f"[숏포지션 진입]")
 
             # 포지션이 있으면
             else:
@@ -489,6 +497,23 @@ class Broker(QAxWidget):
 
                         print(f"[롱포지션 손절]")
 
+                    # Check to pyramid existing position
+                    elif self.chejan['미결제청산가능수량'] <= self.turtle['size_limit']:
+
+                      if price >= self.chejan['피라미딩가격']:
+
+                          # 시장가 매수 주문
+                          self.send_order2("롱피라미딩", self.accno, "", self.ticker, self.get_order_gb('매수'),
+                                           self.get_order_type('시장가'), 1, '', \
+                                           '0', '', '0', '')
+
+                          self.chejan_event_loop = False
+
+                          print(f"[롱피라미딩]")
+
+
+
+
                 elif self.chejan['미결제매도수구분'] == 1:  # 숏 (매도)
 
                     # Check to exit existing long position
@@ -507,6 +532,21 @@ class Broker(QAxWidget):
                         self.chejan_event_loop = False
 
                         print(f"[숏포지션 손절]")
+
+                    # Check to pyramid existing position
+                    elif self.chejan['미결제청산가능수량'] <= self.turtle['size_limit']:
+
+                        if price < self.chejan['피라미딩가격']:
+                            # 시장가 매도 주문
+                            self.send_order2("숏피라미딩", self.accno, "", self.ticker, self.get_order_gb('매도'),
+                                             self.get_order_type('시장가'), 1, '', \
+                                             '0', '', '0', '')
+
+                            self.chejan_event_loop = False
+
+                            print(f"[숏피라미딩]")
+
+
 
 
     def get_order_gb(self, type):
