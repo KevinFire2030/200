@@ -331,7 +331,7 @@ class Broker(QAxWidget):
 
                 print(f"[체잔] 미결제청산가능수량: {self.chejan['미결제청산가능수량']}, "
                       f"신규수량: {self.chejan['신규수량']}, 청산수량: {self.chejan['청산수량']}, "
-                      f"손절가격: {self.chejan['손절가격']}, 피라미딩가격: {self.chejan['피라미딩가격']} ")
+                      f"체결가: {self.chejan['체결가격']}, 손절가: {self.chejan['손절가격']}, 피라미딩가: {self.chejan['피라미딩가격']} ")
 
 
 
