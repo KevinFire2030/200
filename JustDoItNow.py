@@ -53,7 +53,7 @@ class Broker(QAxWidget):
 
         # 차트
         self.t_ohlcv = pd.DataFrame(
-            columns=['date_time', 'Open', 'High', 'Low', 'Close', 'Volume', 'S1_EL', 'S1_ES', 'S1_ExL', 'S1_ExS', 'N', 'S'])
+            columns=['date_time', 'Open', 'High', 'Low', 'Close', 'Volume', 'S1_EL', 'S1_ES', 'S1_ExL', 'S1_ExS', 'N', 'S', 'ma5', 'ma10', 'ma20'])
 
         # 자동 매매
         self.system_running = False
@@ -330,13 +330,37 @@ class Broker(QAxWidget):
 
                     self.chejan['평균가격'] = round(a,2)
 
+                    """
+                    # 본전컷 구현
+                    # 일단 보류
+                    # 손절보다는 청산이 많네    
+                    # [체잔] 미결제청산가능수량: 5, 신규수량: 1, 청산수량: 0, 체결가: 19578.25, 평단가: 19569.2 손절가: 19572.825, 피라미딩가: 19580.9625 
+                    # 피라미딩 되면서 자동으로 손절가가 평단가보다 높아 지네  
+                    # 손절가와 청산가 출력
+                    # 손절가를 먼저 처리해야 하나
+                    # 항상 청산이 손절보다 먼저네, 심지어 포지션 수량이 1개 일때도               
+                    if self.chejan['미결제청산가능수량'] == 1 :
+                        
+                        self.chejan['손절가격'] = self.chejan['체결가격'] + self.t_ohlcv.N.iloc[-2] * 2 \
+                            if self.chejan['매도수구분'] == 1 \
+                            else self.chejan['체결가격'] - self.t_ohlcv.N.iloc[-2] * 2
+                        
+                    elif self.chejan['미결제청산가능수량'] > 3 :
+
+                        self.chejan['손절가격'] = self.chejan['평균가격']
+                    """
+
                     self.chejan['손절가격'] = self.chejan['체결가격'] + self.t_ohlcv.N.iloc[-2] * 2 \
                         if self.chejan['매도수구분'] == 1 \
                         else self.chejan['체결가격'] - self.t_ohlcv.N.iloc[-2] * 2
 
-                    self.chejan['피라미딩가격'] = self.chejan['체결가격'] - self.t_ohlcv.N.iloc[-2] \
+                    #########################
+
+                    self.chejan['피라미딩가격'] = self.chejan['평균가격'] - self.t_ohlcv.N.iloc[-2] \
                         if self.chejan['매도수구분'] == 1 \
-                        else self.chejan['체결가격'] + self.t_ohlcv.N.iloc[-2]
+                        else self.chejan['평균가격'] + self.t_ohlcv.N.iloc[-2]
+
+                    #########################
 
                     self.chejan_event_loop = True
 
@@ -347,20 +371,20 @@ class Broker(QAxWidget):
                     if self.chejan['미결제청산가능수량'] == 0:
                         
                         # 초기화
-
                         self.chejan['평균가격'] = 0
                         self.chejan['손절가격'] = 0
                         self.chejan['피라미딩가격'] = 0
 
+                        # 오픈 포지션 초기화
                         self.trade.drop(self.trade.index, axis=0, inplace=True)
 
-                        
+                        # 체잔(주문) 이벤트 루프
                         self.chejan_event_loop = True
 
 
                 print(f"[체잔] 미결제청산가능수량: {self.chejan['미결제청산가능수량']}, "
                       f"신규수량: {self.chejan['신규수량']}, 청산수량: {self.chejan['청산수량']}, "
-                      f"체결가: {self.chejan['체결가격']}, 평단가: {self.chejan['평균가격']} 손절가: {self.chejan['손절가격']}, 피라미딩가: {self.chejan['피라미딩가격']} ")
+                      f"체결가: {self.chejan['체결가격']}, 평단가: {self.chejan['평균가격']} 손절가: {self.chejan['손절가격']}, 피라미딩가: {self.chejan['피라미딩가격']:.2f}, N[-2]: {self.t_ohlcv.N.iloc[-2]:.2f} ")
 
 
 
@@ -390,8 +414,13 @@ class Broker(QAxWidget):
 
         return df
 
+    def _calc_ma(self, df):
 
+        df['ma5'] = df['Close'].rolling(window=5).mean()
+        df['ma10'] = df['Close'].rolling(window=10).mean()
+        df['ma20'] = df['Close'].rolling(window=20).mean()
 
+        return df
 
 
     def _get_comm_real_data(self, sCode, sRealType):
@@ -438,10 +467,11 @@ class Broker(QAxWidget):
                      'Close': c_price, 'Volume': c_volume, 'S': l_volume}, index=[0])
                 self.t_ohlcv = pd.concat([self.t_ohlcv, ohlcv], ignore_index=True)
 
-                # Breakouts과 N계산
+                # Breakouts과 N계산, 5/10/20 이평선
                 df = self.t_ohlcv[-30:]
                 df = self._calc_breakouts(df)
                 df = self._calc_N(df)
+                df = self._calc_ma(df)
 
                 # ohlcv에 시스템 1의 Breakouts 추가
                 self.t_ohlcv.S1_EL.iloc[-2] = df.S1_EL.iloc[-2]
@@ -452,15 +482,22 @@ class Broker(QAxWidget):
                 # ohlcv에 N 추가
                 self.t_ohlcv.N.iloc[-2] = df.N.iloc[-2]
 
+                # ohlcv에 이평선 추가
+                self.t_ohlcv.ma5.iloc[-2] = df.ma5.iloc[-2]
+                self.t_ohlcv.ma10.iloc[-2] = df.ma10.iloc[-2]
+                self.t_ohlcv.ma20.iloc[-2] = df.ma20.iloc[-2]
+
+
                 # 체결강도를 계산해서 업데이트
                 s_volume = self.t_ohlcv.Volume.iloc[-2] - self.t_ohlcv.S.iloc[-2]
                 self.t_ohlcv.S.iloc[-2] = round(self.t_ohlcv.S.iloc[-2] / s_volume * 100, 0) if s_volume != 0 else -100
 
 
+
                 # 마지막차트 출력
                 print(f"[{self.tick_unit}틱-{self.t_ohlcv.index[-2]}] 체결시간: {self.t_ohlcv.date_time.iloc[-2]}, "
                       f"시가: {self.t_ohlcv.Open.iloc[-2]:.2f}, 고가: {self.t_ohlcv.High.iloc[-2]:.2f}, 저가: {self.t_ohlcv.Low.iloc[-2]:.2f}, 종가: {self.t_ohlcv.Close.iloc[-2]:.2f}, "
-                      f"거래량: {self.t_ohlcv.Volume.iloc[-2]}, 체결강도: {self.t_ohlcv.S.iloc[-2]}")
+                      f"거래량: {self.t_ohlcv.Volume.iloc[-2]}, 체결강도: {self.t_ohlcv.S.iloc[-2]}, N: {self.t_ohlcv.N.iloc[-2]}")
 
                 # 자동 선물 매매
                 if self.system_running:
@@ -501,13 +538,23 @@ class Broker(QAxWidget):
 
         N = self.t_ohlcv.N.iloc[-2]
 
+        # 5/10/20 이평선
+        ma5 = self.t_ohlcv.ma5.iloc[-2]
+        ma10 = self.t_ohlcv.ma10.iloc[-2]
+        ma20 = self.t_ohlcv.ma20.iloc[-2]
+
+        # 이평선 정배열/역배열
+        l_ma = True if price > ma5 and ma5 > ma10 and ma10 > ma20 else False # 정배열
+        s_ma = True if price < ma5 and ma5 < ma10 and ma10 < ma20 else False # 역배열
+
+
 
         if self.chejan_event_loop:
 
             # 포지션이 없으면
             if self.chejan['미결제청산가능수량'] == 0 :
 
-                if price == S1_EL:
+                if price == S1_EL and l_ma:
 
                     # 시장가 매수 주문
                     self.send_order2("매수 진입", self.accno, "", self.ticker, self.get_order_gb('매수'),
@@ -518,7 +565,7 @@ class Broker(QAxWidget):
 
                     print(f"[롱포지션 진입]")
 
-                elif price == S1_ES:
+                elif price == S1_ES and s_ma:
 
                     # 시장가 매도 주문
                     self.send_order2("매도 진입", self.accno, "", self.ticker, self.get_order_gb('매도'),
@@ -554,7 +601,7 @@ class Broker(QAxWidget):
                     # Check to pyramid existing position
                     elif self.chejan['미결제청산가능수량'] <= self.turtle['size_limit']:
 
-                      if price >= self.chejan['피라미딩가격']:
+                      if price >= self.chejan['피라미딩가격'] and l_ma:
 
                           # 시장가 매수 주문
                           self.send_order2("롱피라미딩", self.accno, "", self.ticker, self.get_order_gb('매수'),
@@ -590,7 +637,7 @@ class Broker(QAxWidget):
                     # Check to pyramid existing position
                     elif self.chejan['미결제청산가능수량'] <= self.turtle['size_limit']:
 
-                        if price < self.chejan['피라미딩가격']:
+                        if price < self.chejan['피라미딩가격'] and s_ma:
                             # 시장가 매도 주문
                             self.send_order2("숏피라미딩", self.accno, "", self.ticker, self.get_order_gb('매도'),
                                              self.get_order_type('시장가'), 1, '', \
