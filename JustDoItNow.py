@@ -356,9 +356,9 @@ class Broker(QAxWidget):
 
                     #########################
 
-                    self.chejan['피라미딩가격'] = self.chejan['평균가격'] - self.t_ohlcv.N.iloc[-2] \
+                    self.chejan['피라미딩가격'] = self.chejan['체결가격'] - self.t_ohlcv.N.iloc[-2] \
                         if self.chejan['매도수구분'] == 1 \
-                        else self.chejan['평균가격'] + self.t_ohlcv.N.iloc[-2]
+                        else self.chejan['체결가격'] + self.t_ohlcv.N.iloc[-2]
 
                     #########################
 
@@ -588,7 +588,15 @@ class Broker(QAxWidget):
 
                         self.chejan_event_loop = False
 
-                        print(f"[롱포지션 청산]")
+                        print(f"[롱포지션 청산] S1_ExL: {S1_ExL}")
+
+                    elif price < ma10:
+
+                        self.position_close()
+
+                        self.chejan_event_loop = False
+
+                        print(f"[롱포지션 청산] ma10: {ma10}")
 
                     elif price <= self.chejan['손절가격']:
 
@@ -618,13 +626,22 @@ class Broker(QAxWidget):
                 elif self.chejan['미결제매도수구분'] == 1:  # 숏 (매도)
 
                     # Check to exit existing long position
-                    if price == S1_ExS:
+                    if price == S1_ExS :
 
                         self.position_close()
 
                         self.chejan_event_loop = False
 
-                        print(f"[숏포지션 청산]")
+                        print(f"[숏포지션 청산] S1_ExS: {S1_ExS}")
+
+                    elif price > ma10:
+
+                        self.position_close()
+
+                        self.chejan_event_loop = False
+
+                        print(f"[숏포지션 청산] ma10: {ma10}")
+
 
                     elif price >= self.chejan['손절가격']:
 
