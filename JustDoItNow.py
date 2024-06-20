@@ -53,7 +53,7 @@ class Broker(QAxWidget):
 
         # 차트
         self.t_ohlcv = pd.DataFrame(
-            columns=['date_time', 'Open', 'High', 'Low', 'Close', 'Volume', 'S1_EL', 'S1_ES', 'S1_ExL', 'S1_ExS', 'N', 'S', 'ma5', 'ma10', 'ma20'])
+            columns=['date_time', 'Open', 'High', 'Low', 'Close', 'Volume', 'S1_EL', 'S1_ES', 'S1_ExL', 'S1_ExS', 'N', 'S', 'ma5', 'ma20', 'ma40'])
 
         # 자동 매매
         self.system_running = False
@@ -417,8 +417,9 @@ class Broker(QAxWidget):
     def _calc_ma(self, df):
 
         df['ma5'] = df['Close'].rolling(window=5).mean()
-        df['ma10'] = df['Close'].rolling(window=10).mean()
         df['ma20'] = df['Close'].rolling(window=20).mean()
+        df['ma40'] = df['Close'].rolling(window=40).mean()
+
 
         return df
 
@@ -468,7 +469,7 @@ class Broker(QAxWidget):
                 self.t_ohlcv = pd.concat([self.t_ohlcv, ohlcv], ignore_index=True)
 
                 # Breakouts과 N계산, 5/10/20 이평선
-                df = self.t_ohlcv[-30:]
+                df = self.t_ohlcv[-50:]
                 df = self._calc_breakouts(df)
                 df = self._calc_N(df)
                 df = self._calc_ma(df)
@@ -484,8 +485,8 @@ class Broker(QAxWidget):
 
                 # ohlcv에 이평선 추가
                 self.t_ohlcv.ma5.iloc[-2] = df.ma5.iloc[-2]
-                self.t_ohlcv.ma10.iloc[-2] = df.ma10.iloc[-2]
                 self.t_ohlcv.ma20.iloc[-2] = df.ma20.iloc[-2]
+                self.t_ohlcv.ma40.iloc[-2] = df.ma40.iloc[-2]
 
 
                 # 체결강도를 계산해서 업데이트
@@ -540,12 +541,12 @@ class Broker(QAxWidget):
 
         # 5/10/20 이평선
         ma5 = self.t_ohlcv.ma5.iloc[-2]
-        ma10 = self.t_ohlcv.ma10.iloc[-2]
         ma20 = self.t_ohlcv.ma20.iloc[-2]
+        ma40 = self.t_ohlcv.ma40.iloc[-2]
 
         # 이평선 정배열/역배열
-        l_ma = True if price > ma5 and ma5 > ma10 and ma10 > ma20 else False # 정배열
-        s_ma = True if price < ma5 and ma5 < ma10 and ma10 < ma20 else False # 역배열
+        l_ma = True if price > ma5 and ma5 > ma20 and ma20 > ma40 else False # 정배열
+        s_ma = True if price < ma5 and ma5 < ma20 and ma20 < ma40 else False # 역배열
 
 
 
@@ -590,13 +591,13 @@ class Broker(QAxWidget):
 
                         print(f"[롱포지션 청산] S1_ExL: {S1_ExL}")
 
-                    elif price < ma10:
+                    elif price < ma20:
 
                         self.position_close()
 
                         self.chejan_event_loop = False
 
-                        print(f"[롱포지션 청산] ma10: {ma10}")
+                        print(f"[롱포지션 청산] ma20: {ma20}")
 
                     elif price <= self.chejan['손절가격']:
 
@@ -634,13 +635,13 @@ class Broker(QAxWidget):
 
                         print(f"[숏포지션 청산] S1_ExS: {S1_ExS}")
 
-                    elif price > ma10:
+                    elif price > ma20:
 
                         self.position_close()
 
                         self.chejan_event_loop = False
 
-                        print(f"[숏포지션 청산] ma10: {ma10}")
+                        print(f"[숏포지션 청산] ma20: {ma20}")
 
 
                     elif price >= self.chejan['손절가격']:
@@ -746,7 +747,7 @@ class Fire(QMainWindow, main_form):
 
 
         # Broker 인스턴스 생성
-        self.kiwoom = Broker(self, "MNQM24", 120)
+        self.kiwoom = Broker(self, "MNQU24", 240)
 
         # 키움서버 접속
         self.kiwoom.comm_connect()
