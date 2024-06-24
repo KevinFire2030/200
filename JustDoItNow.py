@@ -596,13 +596,13 @@ class Broker(QAxWidget):
 
                         print(f"[롱포지션 청산] S1_ExL: {S1_ExL}")
 
-                    elif price < ma20:
+                    elif price < ma10:
 
                         self.position_close()
 
                         self.chejan_event_loop = False
 
-                        print(f"[롱포지션 청산] ma20: {ma20}")
+                        print(f"[롱포지션 청산] ma10: {ma10}")
 
                     elif price <= self.chejan['손절가격']:
 
@@ -615,7 +615,7 @@ class Broker(QAxWidget):
                     # Check to pyramid existing position
                     elif self.chejan['미결제청산가능수량'] <= self.turtle['size_limit']:
 
-                      if price >= self.chejan['피라미딩가격'] and l_ma:
+                      if price >= S1_EL and l_ma:
 
                           # 시장가 매수 주문
                           self.send_order2("롱피라미딩", self.accno, "", self.ticker, self.get_order_gb('매수'),
@@ -640,13 +640,13 @@ class Broker(QAxWidget):
 
                         print(f"[숏포지션 청산] S1_ExS: {S1_ExS}")
 
-                    elif price > ma20:
+                    elif price > ma10:
 
                         self.position_close()
 
                         self.chejan_event_loop = False
 
-                        print(f"[숏포지션 청산] ma20: {ma20}")
+                        print(f"[숏포지션 청산] ma10: {ma10}")
 
 
                     elif price >= self.chejan['손절가격']:
@@ -660,7 +660,7 @@ class Broker(QAxWidget):
                     # Check to pyramid existing position
                     elif self.chejan['미결제청산가능수량'] <= self.turtle['size_limit']:
 
-                        if price < self.chejan['피라미딩가격'] and s_ma:
+                        if price <= S1_ES and s_ma:
                             # 시장가 매도 주문
                             self.send_order2("숏피라미딩", self.accno, "", self.ticker, self.get_order_gb('매도'),
                                              self.get_order_type('시장가'), 1, '', \
