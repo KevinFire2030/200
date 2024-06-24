@@ -747,7 +747,7 @@ class Fire(QMainWindow, main_form):
 
 
         # Broker 인스턴스 생성
-        self.kiwoom = Broker(self, "MNQU24", 240)
+        self.kiwoom = Broker(self, "MNQU24", 360)
 
         # 키움서버 접속
         self.kiwoom.comm_connect()
