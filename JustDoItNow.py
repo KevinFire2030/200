@@ -53,7 +53,7 @@ class Broker(QAxWidget):
 
         # 차트
         self.t_ohlcv = pd.DataFrame(
-            columns=['date_time', 'Open', 'High', 'Low', 'Close', 'Volume', 'S1_EL', 'S1_ES', 'S1_ExL', 'S1_ExS', 'N', 'S', 'ma5', 'ma20', 'ma40'])
+            columns=['date_time', 'Open', 'High', 'Low', 'Close', 'Volume', 'S1_EL', 'S1_ES', 'S1_ExL', 'S1_ExS', 'N', 'S', 'ma10', 'ma20', 'ma50'])
 
         # 자동 매매
         self.system_running = False
@@ -416,10 +416,15 @@ class Broker(QAxWidget):
 
     def _calc_ma(self, df):
 
+        """
         df['ma5'] = df['Close'].rolling(window=5).mean()
         df['ma20'] = df['Close'].rolling(window=20).mean()
         df['ma40'] = df['Close'].rolling(window=40).mean()
+        """
 
+        df['ma10'] = ta.ema(df['Close'], 10)
+        df['ma20'] = ta.ema(df['Close'], 20)
+        df['ma50'] = ta.ema(df['Close'], 50)
 
         return df
 
@@ -469,7 +474,7 @@ class Broker(QAxWidget):
                 self.t_ohlcv = pd.concat([self.t_ohlcv, ohlcv], ignore_index=True)
 
                 # Breakouts과 N계산, 5/10/20 이평선
-                df = self.t_ohlcv[-50:]
+                df = self.t_ohlcv[-60:]
                 df = self._calc_breakouts(df)
                 df = self._calc_N(df)
                 df = self._calc_ma(df)
@@ -484,9 +489,9 @@ class Broker(QAxWidget):
                 self.t_ohlcv.N.iloc[-2] = df.N.iloc[-2]
 
                 # ohlcv에 이평선 추가
-                self.t_ohlcv.ma5.iloc[-2] = df.ma5.iloc[-2]
+                self.t_ohlcv.ma10.iloc[-2] = df.ma10.iloc[-2]
                 self.t_ohlcv.ma20.iloc[-2] = df.ma20.iloc[-2]
-                self.t_ohlcv.ma40.iloc[-2] = df.ma40.iloc[-2]
+                self.t_ohlcv.ma50.iloc[-2] = df.ma50.iloc[-2]
 
 
                 # 체결강도를 계산해서 업데이트
@@ -540,13 +545,13 @@ class Broker(QAxWidget):
         N = self.t_ohlcv.N.iloc[-2]
 
         # 5/10/20 이평선
-        ma5 = self.t_ohlcv.ma5.iloc[-2]
+        ma10 = self.t_ohlcv.ma10.iloc[-2]
         ma20 = self.t_ohlcv.ma20.iloc[-2]
-        ma40 = self.t_ohlcv.ma40.iloc[-2]
+        ma50 = self.t_ohlcv.ma50.iloc[-2]
 
         # 이평선 정배열/역배열
-        l_ma = True if price > ma5 and ma5 > ma20 and ma20 > ma40 else False # 정배열
-        s_ma = True if price < ma5 and ma5 < ma20 and ma20 < ma40 else False # 역배열
+        l_ma = True if price > ma10 and ma10 > ma20 and ma20 > ma50 else False # 정배열
+        s_ma = True if price < ma10 and ma10 < ma20 and ma20 < ma50 else False # 역배열
 
 
 
