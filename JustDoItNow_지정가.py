@@ -496,7 +496,7 @@ class Broker(QAxWidget):
 
                     # 지정가 매도 주문
                     self.send_order2("매도 진입", self.accno, "", self.ticker, self.get_order_gb('매도'),
-                                     self.get_order_type('지정가'), price, '', \
+                                     self.get_order_type('지정가'), 1, price, \
                                      '0', '', '0', '')
 
                     self.chejan_event_loop = False
