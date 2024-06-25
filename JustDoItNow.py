@@ -378,8 +378,9 @@ class Broker(QAxWidget):
                         # 오픈 포지션 초기화
                         self.trade.drop(self.trade.index, axis=0, inplace=True)
 
-                        # 체잔(주문) 이벤트 루프
-                        self.chejan_event_loop = True
+
+                    # 체잔(주문) 이벤트 루프
+                    self.chejan_event_loop = True
 
 
                 print(f"[체잔] 미결제청산가능수량: {self.chejan['미결제청산가능수량']}, "
@@ -530,7 +531,8 @@ class Broker(QAxWidget):
 
     def _run_system(self):
 
-
+        # 직전가격
+        p_price = self.t_ohlcv.Close.iloc[-3]
 
         # 현재가격
         price = self.t_ohlcv.Close.iloc[-2]
@@ -615,16 +617,29 @@ class Broker(QAxWidget):
                     # Check to pyramid existing position
                     elif self.chejan['미결제청산가능수량'] <= self.turtle['size_limit']:
 
-                      if price >= S1_EL and l_ma:
+                        if price >= S1_EL and l_ma:
 
-                          # 시장가 매수 주문
-                          self.send_order2("롱피라미딩", self.accno, "", self.ticker, self.get_order_gb('매수'),
-                                           self.get_order_type('시장가'), 1, '', \
-                                           '0', '', '0', '')
+                            # 시장가 매수 주문
+                            self.send_order2("롱피라미딩", self.accno, "", self.ticker, self.get_order_gb('매수'),
+                                               self.get_order_type('시장가'), 1, '', \
+                                               '0', '', '0', '')
 
-                          self.chejan_event_loop = False
+                            self.chejan_event_loop = False
 
-                          print(f"[롱피라미딩]")
+                            print(f"[롱피라미딩]")
+
+                        elif price < p_price and l_ma:
+
+                            # 시장가 매도 주문
+                            self.send_order2("롱리벨런싱", self.accno, "", self.ticker, self.get_order_gb('매도'),
+                                             self.get_order_type('시장가'), 1, '', \
+                                             '0', '', '0', '')
+
+                            self.chejan_event_loop = False
+
+                            print(f"[롱리벨런싱]")
+
+
 
 
 
@@ -670,8 +685,16 @@ class Broker(QAxWidget):
 
                             print(f"[숏피라미딩]")
 
+                        elif price > p_price and s_ma:
 
+                            # 시장가 매수 주문
+                            self.send_order2("숏리벨런싱", self.accno, "", self.ticker, self.get_order_gb('매수'),
+                                             self.get_order_type('시장가'), 1, '', \
+                                             '0', '', '0', '')
 
+                            self.chejan_event_loop = False
+
+                            print(f"[숏리벨런싱]")
 
     def get_order_gb(self, type):
         if type == '매도':
