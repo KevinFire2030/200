@@ -350,6 +350,7 @@ class Broker(QAxWidget):
                         self.chejan['손절가격'] = self.chejan['평균가격']
                     """
 
+                    """
                     self.chejan['손절가격'] = self.chejan['체결가격'] + self.t_ohlcv.N.iloc[-2] * 2 \
                         if self.chejan['매도수구분'] == 1 \
                         else self.chejan['체결가격'] - self.t_ohlcv.N.iloc[-2] * 2
@@ -361,6 +362,17 @@ class Broker(QAxWidget):
                         else self.chejan['체결가격'] + self.t_ohlcv.N.iloc[-2]
 
                     #########################
+                    
+                    """
+
+                    self.chejan['손절가격'] = self.t_ohlcv.Open.iloc[-1] + self.t_ohlcv.N.iloc[-2] * 2 \
+                        if self.chejan['매도수구분'] == 1 \
+                        else self.t_ohlcv.Open.iloc[-1] - self.t_ohlcv.N.iloc[-2] * 2
+
+                    self.chejan['피라미딩가격'] = self.t_ohlcv.Open.iloc[-1] - self.t_ohlcv.N.iloc[-2] \
+                        if self.chejan['매도수구분'] == 1 \
+                        else self.t_ohlcv.Open.iloc[-1] + self.t_ohlcv.N.iloc[-2] / 2
+
 
                     self.chejan_event_loop = True
 
@@ -569,7 +581,7 @@ class Broker(QAxWidget):
                                      self.get_order_type('시장가'), 1, '', \
                                      '0', '', '0', '')
 
-                    self.chejan_event_loop = False
+                    #self.chejan_event_loop = False
 
                     print(f"[롱포지션 진입]")
 
@@ -580,7 +592,7 @@ class Broker(QAxWidget):
                                      self.get_order_type('시장가'), 1, '', \
                                      '0', '', '0', '')
 
-                    self.chejan_event_loop = False
+                    #self.chejan_event_loop = False
 
                     print(f"[숏포지션 진입]")
 
@@ -598,13 +610,6 @@ class Broker(QAxWidget):
 
                         print(f"[롱포지션 청산] S1_ExL: {S1_ExL}")
 
-                    elif price < ma10:
-
-                        self.position_close()
-
-                        self.chejan_event_loop = False
-
-                        print(f"[롱포지션 청산] ma10: {ma10}")
 
                     elif price <= self.chejan['손절가격']:
 
@@ -624,24 +629,9 @@ class Broker(QAxWidget):
                                                self.get_order_type('시장가'), 1, '', \
                                                '0', '', '0', '')
 
-                            self.chejan_event_loop = False
+                            #self.chejan_event_loop = False
 
                             print(f"[롱피라미딩]")
-
-                        elif price < p_price and l_ma:
-
-                            # 시장가 매도 주문
-                            self.send_order2("롱리벨런싱", self.accno, "", self.ticker, self.get_order_gb('매도'),
-                                             self.get_order_type('시장가'), 1, '', \
-                                             '0', '', '0', '')
-
-                            self.chejan_event_loop = False
-
-                            print(f"[롱리벨런싱]")
-
-
-
-
 
 
                 elif self.chejan['미결제매도수구분'] == 1:  # 숏 (매도)
@@ -654,14 +644,6 @@ class Broker(QAxWidget):
                         self.chejan_event_loop = False
 
                         print(f"[숏포지션 청산] S1_ExS: {S1_ExS}")
-
-                    elif price > ma10:
-
-                        self.position_close()
-
-                        self.chejan_event_loop = False
-
-                        print(f"[숏포지션 청산] ma10: {ma10}")
 
 
                     elif price >= self.chejan['손절가격']:
@@ -681,20 +663,10 @@ class Broker(QAxWidget):
                                              self.get_order_type('시장가'), 1, '', \
                                              '0', '', '0', '')
 
-                            self.chejan_event_loop = False
+                            #self.chejan_event_loop = False
 
                             print(f"[숏피라미딩]")
 
-                        elif price > p_price and s_ma:
-
-                            # 시장가 매수 주문
-                            self.send_order2("숏리벨런싱", self.accno, "", self.ticker, self.get_order_gb('매수'),
-                                             self.get_order_type('시장가'), 1, '', \
-                                             '0', '', '0', '')
-
-                            self.chejan_event_loop = False
-
-                            print(f"[숏리벨런싱]")
 
     def get_order_gb(self, type):
         if type == '매도':
@@ -775,7 +747,7 @@ class Fire(QMainWindow, main_form):
 
 
         # Broker 인스턴스 생성
-        self.kiwoom = Broker(self, "MNQU24", 360)
+        self.kiwoom = Broker(self, "MNQU24", 100)
 
         # 키움서버 접속
         self.kiwoom.comm_connect()
