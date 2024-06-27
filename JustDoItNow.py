@@ -17,7 +17,7 @@ main_form = uic.loadUiType("MainWindow3.ui")[0]
 class Broker(QAxWidget):
 
     def __init__(self, mainwindow,
-                 ticker="MNQM24",
+                 ticker="NQM24",
                  tick_unit=120
                  ):
         super().__init__()
@@ -373,6 +373,21 @@ class Broker(QAxWidget):
                         if self.chejan['매도수구분'] == 1 \
                         else self.t_ohlcv.Open.iloc[-1] + self.t_ohlcv.N.iloc[-2] / 2
 
+                    # 피라미딩 stop 오더
+                    """
+                    if self.chejan['미결제청산가능수량'] <= self.turtle['size_limit']:
+
+                        if self.chejan['미결제매도수구분'] == 2:
+                            # STOP 매수 주문
+                            self.send_order2("롱피라미딩", self.accno, "", self.ticker, self.get_order_gb('매수'),
+                                             self.get_order_type('STOP'), 1, self.chejan['피라미딩가격']  , \
+                                             '0', '', '0', '')
+
+                            # self.chejan_event_loop = False
+
+                            print(f"[롱피라미딩]")
+
+                    """
 
                     self.chejan_event_loop = True
 
@@ -574,7 +589,7 @@ class Broker(QAxWidget):
             # 포지션이 없으면
             if self.chejan['미결제청산가능수량'] == 0 :
 
-                if price == S1_EL and l_ma:
+                if price == S1_EL:
 
                     # 시장가 매수 주문
                     self.send_order2("매수 진입", self.accno, "", self.ticker, self.get_order_gb('매수'),
@@ -585,7 +600,7 @@ class Broker(QAxWidget):
 
                     print(f"[롱포지션 진입]")
 
-                elif price == S1_ES and s_ma:
+                elif price == S1_ES :
 
                     # 시장가 매도 주문
                     self.send_order2("매도 진입", self.accno, "", self.ticker, self.get_order_gb('매도'),
@@ -619,10 +634,11 @@ class Broker(QAxWidget):
 
                         print(f"[롱포지션 손절]")
 
+                    """
                     # Check to pyramid existing position
                     elif self.chejan['미결제청산가능수량'] <= self.turtle['size_limit']:
 
-                        if price >= S1_EL and l_ma:
+                        if price >= S1_EL :
 
                             # 시장가 매수 주문
                             self.send_order2("롱피라미딩", self.accno, "", self.ticker, self.get_order_gb('매수'),
@@ -632,6 +648,7 @@ class Broker(QAxWidget):
                             #self.chejan_event_loop = False
 
                             print(f"[롱피라미딩]")
+                    """
 
 
                 elif self.chejan['미결제매도수구분'] == 1:  # 숏 (매도)
@@ -654,10 +671,11 @@ class Broker(QAxWidget):
 
                         print(f"[숏포지션 손절]")
 
+                    """
                     # Check to pyramid existing position
                     elif self.chejan['미결제청산가능수량'] <= self.turtle['size_limit']:
 
-                        if price <= S1_ES and s_ma:
+                        if price <= S1_ES:
                             # 시장가 매도 주문
                             self.send_order2("숏피라미딩", self.accno, "", self.ticker, self.get_order_gb('매도'),
                                              self.get_order_type('시장가'), 1, '', \
@@ -666,6 +684,8 @@ class Broker(QAxWidget):
                             #self.chejan_event_loop = False
 
                             print(f"[숏피라미딩]")
+                    """
+
 
 
     def get_order_gb(self, type):
@@ -747,7 +767,7 @@ class Fire(QMainWindow, main_form):
 
 
         # Broker 인스턴스 생성
-        self.kiwoom = Broker(self, "MNQU24", 100)
+        self.kiwoom = Broker(self, "NQU24", 100)
 
         # 키움서버 접속
         self.kiwoom.comm_connect()
