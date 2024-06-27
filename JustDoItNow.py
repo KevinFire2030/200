@@ -589,7 +589,7 @@ class Broker(QAxWidget):
             # 포지션이 없으면
             if self.chejan['미결제청산가능수량'] == 0 :
 
-                if price == S1_EL:
+                if price == S1_EL and price > ma50 :
 
                     # 시장가 매수 주문
                     self.send_order2("매수 진입", self.accno, "", self.ticker, self.get_order_gb('매수'),
@@ -600,7 +600,7 @@ class Broker(QAxWidget):
 
                     print(f"[롱포지션 진입]")
 
-                elif price == S1_ES :
+                elif price == S1_ES and price < ma50:
 
                     # 시장가 매도 주문
                     self.send_order2("매도 진입", self.accno, "", self.ticker, self.get_order_gb('매도'),
