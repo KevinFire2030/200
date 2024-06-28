@@ -55,6 +55,11 @@ class Broker(QAxWidget):
         self.t_ohlcv = pd.DataFrame(
             columns=['date_time', 'Open', 'High', 'Low', 'Close', 'Volume', 'S1_EL', 'S1_ES', 'S1_ExL', 'S1_ExS', 'N', 'S', 'ma10', 'ma20', 'ma50'])
 
+        # 연속틱차트 조회 카운터
+        self.o_cnt = 0
+
+        self.o_tick = pd.DataFrame(columns=['date_time', 'Open', 'High', 'Low', 'Close', 'Volume'])
+
         # 자동 매매
         self.system_running = False
 
@@ -143,10 +148,19 @@ class Broker(QAxWidget):
 
     def req_opc10001(self):
 
-        # 선물분차트조회
+        # 선물틱차트조회
         self.set_input_value("종목코드", self.ticker)
         self.set_input_value("시간단위", self.tick_unit)
         self.comm_rq_data("틱차트조회", "opc10001", '', self.get_screen_number())
+
+        pass
+
+    def req_opc10001_c(self):
+
+        # 선물연속틱차트조회
+        self.set_input_value("종목코드", self.ticker)
+        self.set_input_value("시간단위", self.tick_unit)
+        self.comm_rq_data("틱차트연속조회", "opc10001", '', self.get_screen_number())
 
         pass
 
@@ -243,7 +257,47 @@ class Broker(QAxWidget):
 
             print(f"({delta}초 = {end_dt} - {start_dt})")
 
+        if sRQName == '틱차트연속조회':
 
+            self.o_cnt = self.o_cnt + 1
+
+            print(f'[틱차트연속조회] 조회 횟수: {self.o_cnt}, 다음: {sPrevNext}')
+
+            data_cnt = self._get_repeat_cnt(sTrCode, sRQName)
+
+            for i in range(0, data_cnt):
+                dt = self._comm_get_data(sTrCode, sRQName, i, "체결시간")
+                open = abs(float(self._comm_get_data(sTrCode, sRQName, i, "시가")))
+                high = abs(float(self._comm_get_data(sTrCode, sRQName, i, "고가")))
+                low = abs(float(self._comm_get_data(sTrCode, sRQName, i, "저가")))
+                close = abs(float(self._comm_get_data(sTrCode, sRQName, i, "현재가")))
+                volume = abs(int(self._comm_get_data(sTrCode, sRQName, i, "거래량")))
+                volume = abs(int(volume))
+                ohlcv = pd.DataFrame(
+                    {'date_time': pd.to_datetime(dt), 'Open': open, 'High': high, 'Low': low, 'Close': close,
+                     'Volume': volume}, index=[0])
+                self.o_tick = pd.concat([ohlcv, self.o_tick], ignore_index=True)
+
+            if sPrevNext == " ":
+                print("틱차트연속조회 끝!")
+
+                # 실시간 차트 저장 (self.ohlcv)
+                # 저장 파일 위치 Data, 파일 이름 KOSPI200_120틱_시작_끝.csv
+                start = self.o_tick.date_time.iloc[0]
+                start = start.strftime('%y%m%d%H%M%S')
+                end = self.o_tick.date_time.iloc[-1]
+                end = end.strftime('%y%m%d%H%M%S')
+                file_name = f'Data\(tick_chart) {self.ticker}_{self.tick_unit}틱_{start}_{end}.csv'
+                self.o_tick.to_csv(file_name, index=None)
+
+                print(f'저장완료 {file_name}')
+
+
+            else:
+                # 틱데이터 받기
+                self.set_input_value("종목코드", self.ticker)
+                self.set_input_value("시간단위", self.tick_unit)
+                self.comm_rq_data("틱차트연속조회", "opc10001", sPrevNext, self.get_screen_number())
 
         elif sRQName == '미결제잔고내역조회':
 
@@ -792,6 +846,9 @@ class Fire(QMainWindow, main_form):
 
         # TR
         self.menu_opw30003.triggered.connect(self.kiwoom.req_opw30003)
+
+        # 차트
+        self.menu_opc10001_c.triggered.connect(self.kiwoom.req_opc10001_c)
 
 
         pass
