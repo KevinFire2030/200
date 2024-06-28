@@ -48,10 +48,17 @@
     </property>
     <addaction name="menu_opc10001_c"/>
    </widget>
+   <widget class="QMenu" name="menu_4">
+    <property name="title">
+     <string>백테스팅</string>
+    </property>
+    <addaction name="menu_bt_run"/>
+   </widget>
    <addaction name="menu"/>
    <addaction name="menu_2"/>
    <addaction name="menuTR"/>
    <addaction name="menu_3"/>
+   <addaction name="menu_4"/>
   </widget>
   <widget class="QStatusBar" name="statusbar"/>
   <action name="menu_trading_start">
@@ -77,6 +84,11 @@
   <action name="menu_opc10001_c">
    <property name="text">
     <string>틱차트연속조회</string>
+   </property>
+  </action>
+  <action name="menu_bt_run">
+   <property name="text">
+    <string>run</string>
    </property>
   </action>
  </widget>

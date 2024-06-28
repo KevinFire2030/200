@@ -11,7 +11,146 @@ pd.options.mode.chained_assignment = None
 import pandas_ta as ta
 import sqlite3
 
+from fire2025 import Fire2025, Strategy
+
 main_form = uic.loadUiType("MainWindow3.ui")[0]
+
+
+
+#######################################
+sys1_entry = 20
+sys1_exit = 10
+
+#######################################
+
+#######################################
+
+def calc_ma(df):
+    df['ma10'] = ta.ema(df['Close'], 10)
+    df['ma20'] = ta.ema(df['Close'], 20)
+    df['ma50'] = ta.ema(df['Close'], 50)
+
+    return df
+
+def calc_N(df):
+    df['N'] = ta.atr(df['High'], df['Low'], df['Close'], length=20, mamode='sma')
+    return df
+
+def calc_breakouts(df):
+
+    # 시스템 1
+    # 진입
+    df['S1_EL'] = df['Close'].rolling(sys1_entry).max()
+    df['S1_ES'] = df['Close'].rolling(sys1_entry).min()
+    #청산1
+    df['S1_ExL'] = df['Close'].rolling(sys1_exit).min()
+    df['S1_ExS'] = df['Close'].rolling(sys1_exit).max()
+
+    return df
+
+
+class Turtle(Strategy):
+
+    def init(self):
+        super().init()
+
+        self.unit_limit = 10
+
+        self.ticker = 'NQ'
+        # self.ticker = 'NQ'
+        self.leverage = 2 if self.ticker == 'MNQ' else 20
+        self.commission = 2 if self.ticker == 'MNQ' else 4.6
+
+        self.sp = 0
+
+    def _get_unit_size(self):
+
+        unit_size = 1
+
+        return unit_size
+
+    def  next(self):
+        super().next()
+
+        price = self.data.Close[-1]
+
+        S1_EL = self.data.S1_EL[-1]
+        S1_ES = self.data.S1_ES[-1]
+
+        S1_ExL = self.data.S1_ExL[-1]
+        S1_ExS = self.data.S1_ExS[-1]
+
+        N = self.data.N[-1]
+
+        ma50 = self.data.ma50[-1]
+
+        print(
+            f"[{self.data.index[-1]}] {self.data.date_time[-1]}, 손익: {self.position.pl:.2f}, 누적: {self.position.pl2:.2f}, "
+            f"시가: {self.data.Open[-1]}, 고가: {self.data.High[-1]}, 저가: {self.data.Low[-1]}, 종가: {self.data.Close[-1]}, 거래량: {self.data.Volume[-1]}, "
+            f"N: {self.data.N[-1]:.2f}")
+
+        if len(self.trades) == 0:
+
+            if price == S1_EL and price > ma50:
+
+                print(f"[롱포지션 진입]")
+
+                self.sp = price - 2 * N
+                self.buy(size=self._get_unit_size())
+
+
+
+            elif price == S1_ES and price < ma50:
+
+                print(f"[숏포지션 진입]")
+
+                self.sp = price + 2 * N
+                self.sell(size=self._get_unit_size())
+
+
+
+        else:
+
+            if self.position.is_long:
+
+                if price == S1_ExL:
+
+                    print(f"[롱포지션 청산] S1_ExL: {S1_ExL}")
+
+                    self.sp = 0
+                    self.position.close()
+
+
+
+                elif price <= self.sp:
+
+                    print(f"[롱포지션 손절] price {price} > sp {self.sp}")
+
+                    self.sp = 0
+                    self.position.close()
+
+
+
+
+            elif self.position.is_short:
+
+                if price == S1_ExS:
+
+                    print(f"[숏포지션 청산] S1_ExS: {S1_ExS}")
+
+                    self.sp = 0
+                    self.position.close()
+
+
+
+                elif price >= self.sp:
+
+                    print(f"[숏포지션 손절] price {price} > sp {self.sp}")
+
+                    self.sp = 0
+                    self.position.close()
+
+
 
 
 class Broker(QAxWidget):
@@ -823,6 +962,7 @@ class Fire(QMainWindow, main_form):
         # Broker 인스턴스 생성
         self.kiwoom = Broker(self, "NQU24", 100)
 
+        """
         # 키움서버 접속
         self.kiwoom.comm_connect()
 
@@ -831,6 +971,7 @@ class Fire(QMainWindow, main_form):
 
         # 틱차트 요청
         self.kiwoom.req_opc10001()
+        """
 
         ## 메인윈도우 이벤트 처리
         self.set_event_handler()
@@ -850,6 +991,9 @@ class Fire(QMainWindow, main_form):
         # 차트
         self.menu_opc10001_c.triggered.connect(self.kiwoom.req_opc10001_c)
 
+        # 백테스팅
+        self.menu_bt_run.triggered.connect(self.bt_run)
+
 
         pass
 
@@ -860,6 +1004,41 @@ class Fire(QMainWindow, main_form):
     def action_trading_end(self):
 
         self.kiwoom.system_running = False
+
+    def bt_run(self):
+
+
+
+        df = pd.read_csv('./Data/(tick_chart) NQU24_100틱_240531070000_240628090935.csv')
+
+        start = '2024-06-21 22:00:00'
+        end = '2024-06-22 06:00:00'
+        df['date_time'] = pd.to_datetime(df['date_time'])
+
+        ohlcv = df[df['date_time'].between(start, end)]
+
+        ohlcv = calc_N(ohlcv)
+        ohlcv = calc_breakouts(ohlcv)
+        ohlcv = calc_ma(ohlcv)
+
+        ohlcv.dropna(inplace=True)
+        ohlcv.reset_index(inplace=True, drop=True)
+
+        bt = Fire2025(ohlcv, Turtle, cash=20000 * 10, commission=4.6, margin=1, point_value=20, trade_on_close=True)
+
+        stats = bt.run()
+
+        print(stats)
+
+        bt.plot()
+
+        print(stats['_trades'].to_string())
+
+
+
+        print(f"bt run")
+
+
 
 
 
