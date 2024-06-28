@@ -1,0 +1,241 @@
+<!DOCTYPE html>
+<!-- saved from url=(0057)https://medium.com/media/c745f87460fe28a7dfda5698c33ebea3 -->
+<html><head><meta http-equiv="Content-Type" content="text/html; charset=UTF-8"><title>breakout_scanner_plot.py – Medium</title><meta name="description" content="Instantly share code, notes, and snippets. You can&#39;t perform that action at this time. You signed in with another tab or window. You signed out in another tab or window. Reload to refresh your session. Reload to refresh your session."><meta name="twitter:widgets:csp" content="on"><meta name="robots" content="noindex"><!--<base target="_blank">--><base href="." target="_blank"><style>body {text-rendering: optimizeLegibility; -webkit-font-smoothing: antialiased; -moz-osx-font-smoothing: grayscale; font-family: "ff-tisa-web-pro", Georgia, Cambria, "Times New Roman", Times, serif; font-weight: 400; color: #333332; font-size: 18px; line-height: 1.4; margin: 0; background-color: white; overflow: hidden;}iframe {max-width: 100%;}</style></head><body><style>.gist .gist-file { margin-bottom: 0 !important; }.gist { text-rendering: auto; }</style><script src="./2bbb72b2598a75bf75ba720c77de1be0.js.다운로드" charset="utf-8"></script><link rel="stylesheet" href="./gist-embed-03fac261cb6c.css"><div id="gist118282828" class="gist">
+    <div class="gist-file" translate="no" data-color-mode="light" data-light-theme="light">
+      <div class="gist-data">
+        <div class="js-gist-file-update-container js-task-list-container">
+  <div id="file-breakout_scanner_plot-py" class="file my-2">
+    
+    <div itemprop="text" class="Box-body p-0 blob-wrapper data type-python  ">
+
+        
+<div class="js-check-bidi js-blob-code-container blob-code-content">
+
+  <template class="js-file-alert-template"></template>
+<template class="js-line-alert-template"></template>
+
+  <table data-hpc="" class="highlight tab-size js-file-line-container js-code-nav-container js-tagsearch-file" data-tab-size="8" data-paste-markdown-skip="" data-tagsearch-lang="Python" data-tagsearch-path="breakout_scanner_plot.py">
+        <tbody><tr>
+          <td id="file-breakout_scanner_plot-py-L1" class="blob-num js-line-number js-code-nav-line-number js-blob-rnum" data-line-number="1"></td>
+          <td id="file-breakout_scanner_plot-py-LC1" class="blob-code blob-code-inner js-file-line"><span class="pl-k">import</span> <span class="pl-s1">plotly</span>.<span class="pl-s1">io</span> <span class="pl-k">as</span> <span class="pl-s1">pio</span></td>
+        </tr>
+        <tr>
+          <td id="file-breakout_scanner_plot-py-L2" class="blob-num js-line-number js-code-nav-line-number js-blob-rnum" data-line-number="2"></td>
+          <td id="file-breakout_scanner_plot-py-LC2" class="blob-code blob-code-inner js-file-line"><span class="pl-k">import</span> <span class="pl-s1">plotly</span>.<span class="pl-s1">graph_objects</span> <span class="pl-k">as</span> <span class="pl-s1">go</span></td>
+        </tr>
+        <tr>
+          <td id="file-breakout_scanner_plot-py-L3" class="blob-num js-line-number js-code-nav-line-number js-blob-rnum" data-line-number="3"></td>
+          <td id="file-breakout_scanner_plot-py-LC3" class="blob-code blob-code-inner js-file-line"><span class="pl-s1">pio</span>.<span class="pl-s1">renderers</span>.<span class="pl-s1">default</span><span class="pl-c1">=</span><span class="pl-s">'browser'</span>    </td>
+        </tr>
+        <tr>
+          <td id="file-breakout_scanner_plot-py-L4" class="blob-num js-line-number js-code-nav-line-number js-blob-rnum" data-line-number="4"></td>
+          <td id="file-breakout_scanner_plot-py-LC4" class="blob-code blob-code-inner js-file-line">    </td>
+        </tr>
+        <tr>
+          <td id="file-breakout_scanner_plot-py-L5" class="blob-num js-line-number js-code-nav-line-number js-blob-rnum" data-line-number="5"></td>
+          <td id="file-breakout_scanner_plot-py-LC5" class="blob-code blob-code-inner js-file-line"><span class="pl-s1">df</span> <span class="pl-c1">=</span> <span class="pl-s1">df</span>[(<span class="pl-s1">df</span>[<span class="pl-s">'Date'</span>] <span class="pl-c1">&gt;</span> <span class="pl-s">'2020-06-01'</span>) <span class="pl-c1">&amp;</span> (<span class="pl-s1">df</span>[<span class="pl-s">'Date'</span>] <span class="pl-c1">&lt;</span> <span class="pl-s">'2021-06-01'</span>)]</td>
+        </tr>
+        <tr>
+          <td id="file-breakout_scanner_plot-py-L6" class="blob-num js-line-number js-code-nav-line-number js-blob-rnum" data-line-number="6"></td>
+          <td id="file-breakout_scanner_plot-py-LC6" class="blob-code blob-code-inner js-file-line">
+</td>
+        </tr>
+        <tr>
+          <td id="file-breakout_scanner_plot-py-L7" class="blob-num js-line-number js-code-nav-line-number js-blob-rnum" data-line-number="7"></td>
+          <td id="file-breakout_scanner_plot-py-LC7" class="blob-code blob-code-inner js-file-line"><span class="pl-s1">df</span>[<span class="pl-s">'bar_plot'</span>] <span class="pl-c1">=</span> <span class="pl-s1">np</span>.<span class="pl-en">where</span>(</td>
+        </tr>
+        <tr>
+          <td id="file-breakout_scanner_plot-py-L8" class="blob-num js-line-number js-code-nav-line-number js-blob-rnum" data-line-number="8"></td>
+          <td id="file-breakout_scanner_plot-py-LC8" class="blob-code blob-code-inner js-file-line">    <span class="pl-s1">df</span>[<span class="pl-s">'filtered'</span>],</td>
+        </tr>
+        <tr>
+          <td id="file-breakout_scanner_plot-py-L9" class="blob-num js-line-number js-code-nav-line-number js-blob-rnum" data-line-number="9"></td>
+          <td id="file-breakout_scanner_plot-py-LC9" class="blob-code blob-code-inner js-file-line">    <span class="pl-s1">df</span>[<span class="pl-s">'High'</span>].<span class="pl-en">max</span>(),</td>
+        </tr>
+        <tr>
+          <td id="file-breakout_scanner_plot-py-L10" class="blob-num js-line-number js-code-nav-line-number js-blob-rnum" data-line-number="10"></td>
+          <td id="file-breakout_scanner_plot-py-LC10" class="blob-code blob-code-inner js-file-line">    <span class="pl-s1">df</span>[<span class="pl-s">'Low'</span>].<span class="pl-en">min</span>(),</td>
+        </tr>
+        <tr>
+          <td id="file-breakout_scanner_plot-py-L11" class="blob-num js-line-number js-code-nav-line-number js-blob-rnum" data-line-number="11"></td>
+          <td id="file-breakout_scanner_plot-py-LC11" class="blob-code blob-code-inner js-file-line">)</td>
+        </tr>
+        <tr>
+          <td id="file-breakout_scanner_plot-py-L12" class="blob-num js-line-number js-code-nav-line-number js-blob-rnum" data-line-number="12"></td>
+          <td id="file-breakout_scanner_plot-py-LC12" class="blob-code blob-code-inner js-file-line">
+</td>
+        </tr>
+        <tr>
+          <td id="file-breakout_scanner_plot-py-L13" class="blob-num js-line-number js-code-nav-line-number js-blob-rnum" data-line-number="13"></td>
+          <td id="file-breakout_scanner_plot-py-LC13" class="blob-code blob-code-inner js-file-line"><span class="pl-s1">fig</span> <span class="pl-c1">=</span> <span class="pl-s1">go</span>.<span class="pl-v">Figure</span>()</td>
+        </tr>
+        <tr>
+          <td id="file-breakout_scanner_plot-py-L14" class="blob-num js-line-number js-code-nav-line-number js-blob-rnum" data-line-number="14"></td>
+          <td id="file-breakout_scanner_plot-py-LC14" class="blob-code blob-code-inner js-file-line">
+</td>
+        </tr>
+        <tr>
+          <td id="file-breakout_scanner_plot-py-L15" class="blob-num js-line-number js-code-nav-line-number js-blob-rnum" data-line-number="15"></td>
+          <td id="file-breakout_scanner_plot-py-LC15" class="blob-code blob-code-inner js-file-line"><span class="pl-s1">fig</span>.<span class="pl-en">add_trace</span>(</td>
+        </tr>
+        <tr>
+          <td id="file-breakout_scanner_plot-py-L16" class="blob-num js-line-number js-code-nav-line-number js-blob-rnum" data-line-number="16"></td>
+          <td id="file-breakout_scanner_plot-py-LC16" class="blob-code blob-code-inner js-file-line">    <span class="pl-s1">go</span>.<span class="pl-v">Candlestick</span>(</td>
+        </tr>
+        <tr>
+          <td id="file-breakout_scanner_plot-py-L17" class="blob-num js-line-number js-code-nav-line-number js-blob-rnum" data-line-number="17"></td>
+          <td id="file-breakout_scanner_plot-py-LC17" class="blob-code blob-code-inner js-file-line">        <span class="pl-s1">x</span> <span class="pl-c1">=</span> <span class="pl-s1">df</span>[<span class="pl-s">'Date'</span>],</td>
+        </tr>
+        <tr>
+          <td id="file-breakout_scanner_plot-py-L18" class="blob-num js-line-number js-code-nav-line-number js-blob-rnum" data-line-number="18"></td>
+          <td id="file-breakout_scanner_plot-py-LC18" class="blob-code blob-code-inner js-file-line">        <span class="pl-s1">open</span> <span class="pl-c1">=</span> <span class="pl-s1">df</span>[<span class="pl-s">'Open'</span>], </td>
+        </tr>
+        <tr>
+          <td id="file-breakout_scanner_plot-py-L19" class="blob-num js-line-number js-code-nav-line-number js-blob-rnum" data-line-number="19"></td>
+          <td id="file-breakout_scanner_plot-py-LC19" class="blob-code blob-code-inner js-file-line">        <span class="pl-s1">high</span> <span class="pl-c1">=</span> <span class="pl-s1">df</span>[<span class="pl-s">'High'</span>],</td>
+        </tr>
+        <tr>
+          <td id="file-breakout_scanner_plot-py-L20" class="blob-num js-line-number js-code-nav-line-number js-blob-rnum" data-line-number="20"></td>
+          <td id="file-breakout_scanner_plot-py-LC20" class="blob-code blob-code-inner js-file-line">        <span class="pl-s1">low</span> <span class="pl-c1">=</span> <span class="pl-s1">df</span>[<span class="pl-s">'Low'</span>],</td>
+        </tr>
+        <tr>
+          <td id="file-breakout_scanner_plot-py-L21" class="blob-num js-line-number js-code-nav-line-number js-blob-rnum" data-line-number="21"></td>
+          <td id="file-breakout_scanner_plot-py-LC21" class="blob-code blob-code-inner js-file-line">        <span class="pl-s1">close</span> <span class="pl-c1">=</span> <span class="pl-s1">df</span>[<span class="pl-s">'Close'</span>],</td>
+        </tr>
+        <tr>
+          <td id="file-breakout_scanner_plot-py-L22" class="blob-num js-line-number js-code-nav-line-number js-blob-rnum" data-line-number="22"></td>
+          <td id="file-breakout_scanner_plot-py-LC22" class="blob-code blob-code-inner js-file-line">        <span class="pl-s1">showlegend</span> <span class="pl-c1">=</span> <span class="pl-c1">False</span>,</td>
+        </tr>
+        <tr>
+          <td id="file-breakout_scanner_plot-py-L23" class="blob-num js-line-number js-code-nav-line-number js-blob-rnum" data-line-number="23"></td>
+          <td id="file-breakout_scanner_plot-py-LC23" class="blob-code blob-code-inner js-file-line">    ),</td>
+        </tr>
+        <tr>
+          <td id="file-breakout_scanner_plot-py-L24" class="blob-num js-line-number js-code-nav-line-number js-blob-rnum" data-line-number="24"></td>
+          <td id="file-breakout_scanner_plot-py-LC24" class="blob-code blob-code-inner js-file-line">)</td>
+        </tr>
+        <tr>
+          <td id="file-breakout_scanner_plot-py-L25" class="blob-num js-line-number js-code-nav-line-number js-blob-rnum" data-line-number="25"></td>
+          <td id="file-breakout_scanner_plot-py-LC25" class="blob-code blob-code-inner js-file-line">
+</td>
+        </tr>
+        <tr>
+          <td id="file-breakout_scanner_plot-py-L26" class="blob-num js-line-number js-code-nav-line-number js-blob-rnum" data-line-number="26"></td>
+          <td id="file-breakout_scanner_plot-py-LC26" class="blob-code blob-code-inner js-file-line"><span class="pl-s1">fig</span>.<span class="pl-en">add_trace</span>(</td>
+        </tr>
+        <tr>
+          <td id="file-breakout_scanner_plot-py-L27" class="blob-num js-line-number js-code-nav-line-number js-blob-rnum" data-line-number="27"></td>
+          <td id="file-breakout_scanner_plot-py-LC27" class="blob-code blob-code-inner js-file-line">    <span class="pl-s1">go</span>.<span class="pl-v">Scatter</span>(</td>
+        </tr>
+        <tr>
+          <td id="file-breakout_scanner_plot-py-L28" class="blob-num js-line-number js-code-nav-line-number js-blob-rnum" data-line-number="28"></td>
+          <td id="file-breakout_scanner_plot-py-LC28" class="blob-code blob-code-inner js-file-line">        <span class="pl-s1">x</span> <span class="pl-c1">=</span> <span class="pl-s1">df</span>[<span class="pl-s">'Date'</span>], </td>
+        </tr>
+        <tr>
+          <td id="file-breakout_scanner_plot-py-L29" class="blob-num js-line-number js-code-nav-line-number js-blob-rnum" data-line-number="29"></td>
+          <td id="file-breakout_scanner_plot-py-LC29" class="blob-code blob-code-inner js-file-line">        <span class="pl-s1">y</span> <span class="pl-c1">=</span> <span class="pl-s1">df</span>[<span class="pl-s">'bar_plot'</span>],</td>
+        </tr>
+        <tr>
+          <td id="file-breakout_scanner_plot-py-L30" class="blob-num js-line-number js-code-nav-line-number js-blob-rnum" data-line-number="30"></td>
+          <td id="file-breakout_scanner_plot-py-LC30" class="blob-code blob-code-inner js-file-line">        <span class="pl-s1">fill</span> <span class="pl-c1">=</span> <span class="pl-s">'tonexty'</span>,</td>
+        </tr>
+        <tr>
+          <td id="file-breakout_scanner_plot-py-L31" class="blob-num js-line-number js-code-nav-line-number js-blob-rnum" data-line-number="31"></td>
+          <td id="file-breakout_scanner_plot-py-LC31" class="blob-code blob-code-inner js-file-line">        <span class="pl-s1">fillcolor</span> <span class="pl-c1">=</span> <span class="pl-s">'rgba(0, 236, 109, 0.2)'</span>,</td>
+        </tr>
+        <tr>
+          <td id="file-breakout_scanner_plot-py-L32" class="blob-num js-line-number js-code-nav-line-number js-blob-rnum" data-line-number="32"></td>
+          <td id="file-breakout_scanner_plot-py-LC32" class="blob-code blob-code-inner js-file-line">        <span class="pl-s1">mode</span> <span class="pl-c1">=</span> <span class="pl-s">'lines'</span>,</td>
+        </tr>
+        <tr>
+          <td id="file-breakout_scanner_plot-py-L33" class="blob-num js-line-number js-code-nav-line-number js-blob-rnum" data-line-number="33"></td>
+          <td id="file-breakout_scanner_plot-py-LC33" class="blob-code blob-code-inner js-file-line">        <span class="pl-s1">line</span> <span class="pl-c1">=</span> {<span class="pl-s">'width'</span>: <span class="pl-c1">0</span>, <span class="pl-s">'shape'</span>: <span class="pl-s">'hvh'</span>},</td>
+        </tr>
+        <tr>
+          <td id="file-breakout_scanner_plot-py-L34" class="blob-num js-line-number js-code-nav-line-number js-blob-rnum" data-line-number="34"></td>
+          <td id="file-breakout_scanner_plot-py-LC34" class="blob-code blob-code-inner js-file-line">        <span class="pl-s1">showlegend</span> <span class="pl-c1">=</span> <span class="pl-c1">False</span>,</td>
+        </tr>
+        <tr>
+          <td id="file-breakout_scanner_plot-py-L35" class="blob-num js-line-number js-code-nav-line-number js-blob-rnum" data-line-number="35"></td>
+          <td id="file-breakout_scanner_plot-py-LC35" class="blob-code blob-code-inner js-file-line">    ),</td>
+        </tr>
+        <tr>
+          <td id="file-breakout_scanner_plot-py-L36" class="blob-num js-line-number js-code-nav-line-number js-blob-rnum" data-line-number="36"></td>
+          <td id="file-breakout_scanner_plot-py-LC36" class="blob-code blob-code-inner js-file-line">)</td>
+        </tr>
+        <tr>
+          <td id="file-breakout_scanner_plot-py-L37" class="blob-num js-line-number js-code-nav-line-number js-blob-rnum" data-line-number="37"></td>
+          <td id="file-breakout_scanner_plot-py-LC37" class="blob-code blob-code-inner js-file-line">
+</td>
+        </tr>
+        <tr>
+          <td id="file-breakout_scanner_plot-py-L38" class="blob-num js-line-number js-code-nav-line-number js-blob-rnum" data-line-number="38"></td>
+          <td id="file-breakout_scanner_plot-py-LC38" class="blob-code blob-code-inner js-file-line"><span class="pl-s1">fig</span>.<span class="pl-en">update_layout</span>(</td>
+        </tr>
+        <tr>
+          <td id="file-breakout_scanner_plot-py-L39" class="blob-num js-line-number js-code-nav-line-number js-blob-rnum" data-line-number="39"></td>
+          <td id="file-breakout_scanner_plot-py-LC39" class="blob-code blob-code-inner js-file-line">    <span class="pl-s1">xaxis</span> <span class="pl-c1">=</span> {<span class="pl-s">'title'</span>: <span class="pl-s">'Date'</span>},</td>
+        </tr>
+        <tr>
+          <td id="file-breakout_scanner_plot-py-L40" class="blob-num js-line-number js-code-nav-line-number js-blob-rnum" data-line-number="40"></td>
+          <td id="file-breakout_scanner_plot-py-LC40" class="blob-code blob-code-inner js-file-line">    <span class="pl-s1">yaxis</span> <span class="pl-c1">=</span> {<span class="pl-s">'range'</span>: [<span class="pl-s1">df</span>[<span class="pl-s">'Low'</span>].<span class="pl-en">min</span>(), <span class="pl-s1">df</span>[<span class="pl-s">'High'</span>].<span class="pl-en">max</span>()], <span class="pl-s">'title'</span>: <span class="pl-s">'Price'</span>},</td>
+        </tr>
+        <tr>
+          <td id="file-breakout_scanner_plot-py-L41" class="blob-num js-line-number js-code-nav-line-number js-blob-rnum" data-line-number="41"></td>
+          <td id="file-breakout_scanner_plot-py-LC41" class="blob-code blob-code-inner js-file-line">    <span class="pl-s1">title</span> <span class="pl-c1">=</span> <span class="pl-s">'Scanned Breakout Candidates'</span></td>
+        </tr>
+        <tr>
+          <td id="file-breakout_scanner_plot-py-L42" class="blob-num js-line-number js-code-nav-line-number js-blob-rnum" data-line-number="42"></td>
+          <td id="file-breakout_scanner_plot-py-LC42" class="blob-code blob-code-inner js-file-line">)</td>
+        </tr>
+        <tr>
+          <td id="file-breakout_scanner_plot-py-L43" class="blob-num js-line-number js-code-nav-line-number js-blob-rnum" data-line-number="43"></td>
+          <td id="file-breakout_scanner_plot-py-LC43" class="blob-code blob-code-inner js-file-line">
+</td>
+        </tr>
+        <tr>
+          <td id="file-breakout_scanner_plot-py-L44" class="blob-num js-line-number js-code-nav-line-number js-blob-rnum" data-line-number="44"></td>
+          <td id="file-breakout_scanner_plot-py-LC44" class="blob-code blob-code-inner js-file-line"><span class="pl-s1">fig</span>.<span class="pl-en">update_xaxes</span>(</td>
+        </tr>
+        <tr>
+          <td id="file-breakout_scanner_plot-py-L45" class="blob-num js-line-number js-code-nav-line-number js-blob-rnum" data-line-number="45"></td>
+          <td id="file-breakout_scanner_plot-py-LC45" class="blob-code blob-code-inner js-file-line">    <span class="pl-s1">rangebreaks</span> <span class="pl-c1">=</span> [{<span class="pl-s">'bounds'</span>: [<span class="pl-s">'sat'</span>, <span class="pl-s">'mon'</span>]}],</td>
+        </tr>
+        <tr>
+          <td id="file-breakout_scanner_plot-py-L46" class="blob-num js-line-number js-code-nav-line-number js-blob-rnum" data-line-number="46"></td>
+          <td id="file-breakout_scanner_plot-py-LC46" class="blob-code blob-code-inner js-file-line">    <span class="pl-s1">rangeslider_visible</span> <span class="pl-c1">=</span> <span class="pl-c1">False</span>,</td>
+        </tr>
+        <tr>
+          <td id="file-breakout_scanner_plot-py-L47" class="blob-num js-line-number js-code-nav-line-number js-blob-rnum" data-line-number="47"></td>
+          <td id="file-breakout_scanner_plot-py-LC47" class="blob-code blob-code-inner js-file-line">)</td>
+        </tr>
+        <tr>
+          <td id="file-breakout_scanner_plot-py-L48" class="blob-num js-line-number js-code-nav-line-number js-blob-rnum" data-line-number="48"></td>
+          <td id="file-breakout_scanner_plot-py-LC48" class="blob-code blob-code-inner js-file-line">
+</td>
+        </tr>
+        <tr>
+          <td id="file-breakout_scanner_plot-py-L49" class="blob-num js-line-number js-code-nav-line-number js-blob-rnum" data-line-number="49"></td>
+          <td id="file-breakout_scanner_plot-py-LC49" class="blob-code blob-code-inner js-file-line"><span class="pl-s1">fig</span>.<span class="pl-en">show</span>()</td>
+        </tr>
+  </tbody></table>
+</div>
+
+
+    </div>
+
+  </div>
+</div>
+
+      </div>
+      <div class="gist-meta">
+        <a href="https://gist.github.com/GrovesD2/2bbb72b2598a75bf75ba720c77de1be0/raw/81189106fdabfba5ccb33768acb6ab80685471a6/breakout_scanner_plot.py" style="float:right" class="Link--inTextBlock">view raw</a>
+        <a href="https://gist.github.com/GrovesD2/2bbb72b2598a75bf75ba720c77de1be0#file-breakout_scanner_plot-py" class="Link--inTextBlock">
+          breakout_scanner_plot.py
+        </a>
+        hosted with ❤ by <a class="Link--inTextBlock" href="https://github.com/">GitHub</a>
+      </div>
+    </div>
+</div>
+<script>var height = -1; var delayMs = 200; if (document) {document.domain = document.domain;}function notifyResize(height) {height = height ? height : document.documentElement.offsetHeight; var resized = false; if (window.donkey && donkey.resize) {donkey.resize(height);var elements = document.getElementsByClassName("gist-data"); for (var i = 0; i < elements.length; i++) {elements[i].style.overflow = "visible"}resized = true;}if (parent && parent._resizeIframe) {var obj = {iframe: window.frameElement, height: height}; parent._resizeIframe(obj); resized = true;}if (window.location && window.location.hash === "#amp=1" && window.parent && window.parent.postMessage) {window.parent.postMessage({sentinel: "amp", type: "embed-size", height: height}, "*");}if (window.webkit && window.webkit.messageHandlers && window.webkit.messageHandlers.resize) {window.webkit.messageHandlers.resize.postMessage(height); resized = true;}return resized;}function maybeResize() {try {if (document.documentElement.offsetHeight != height && notifyResize()) {height = document.documentElement.offsetHeight;}delayMs = Math.min(delayMs * 2, 1000000); setTimeout(maybeResize, delayMs);} catch(error) {console.log('maybeResize error: ', error)}}maybeResize();</script><script defer="" src="./vcd15cbe7772f49c399c6a5babf22c1241717689176015" integrity="sha512-ZpsOmlRQV6y907TI0dKBHq9Md29nnaEIPlkf84rnaERnq6zvWvPUqr2ft8M1aS28oN72PdrCzSjY4U6VaAw1EQ==" data-cf-beacon="{&quot;rayId&quot;:&quot;898b1d5a9d88a7c3&quot;,&quot;version&quot;:&quot;2024.4.1&quot;,&quot;token&quot;:&quot;0b5f665943484354a59c39c6833f7078&quot;}" crossorigin="anonymous"></script>
+</body></html>
