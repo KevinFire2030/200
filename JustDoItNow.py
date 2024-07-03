@@ -49,6 +49,134 @@ def calc_breakouts(df):
     return df
 
 
+class Turtle2(Strategy):
+
+    def init(self):
+        super().init()
+
+        self.unit_limit = 10
+
+        self.ticker = 'NQ'
+        # self.ticker = 'NQ'
+        self.leverage = 2 if self.ticker == 'MNQ' else 20
+        self.commission = 2 if self.ticker == 'MNQ' else 4.6
+
+        self.sp = 0
+        self.tp = 0
+
+    def _get_unit_size(self):
+
+        unit_size = 1
+
+        return unit_size
+
+    def  next(self):
+        super().next()
+
+        price = self.data.Close[-1]
+
+        S1_EL = self.data.S1_EL[-1]
+        S1_ES = self.data.S1_ES[-1]
+
+        S1_ExL = self.data.S1_ExL[-1]
+        S1_ExS = self.data.S1_ExS[-1]
+
+        N = self.data.N[-1]
+
+        ma50 = self.data.ma50[-1]
+
+        print(
+            f"[{self.data.index[-1]}] {self.data.date_time[-1]}, 손익: {self.position.pl:.2f}, 누적: {self.position.pl2:.2f}, "
+            f"시가: {self.data.Open[-1]}, 고가: {self.data.High[-1]}, 저가: {self.data.Low[-1]}, 종가: {self.data.Close[-1]}, 거래량: {self.data.Volume[-1]}, "
+            f"N: {self.data.N[-1]:.2f}")
+
+        if len(self.trades) == 0:
+
+            if price == S1_EL and price > ma50:
+
+                print(f"[롱포지션 진입]")
+
+                self.sp = price - N
+                self.tp = price + 2*N
+
+                self.buy(size=self._get_unit_size())
+
+
+
+            elif price == S1_ES and price < ma50:
+
+                print(f"[숏포지션 진입]")
+
+                self.sp = price + N
+                self.tp = price - 2*N
+                self.sell(size=self._get_unit_size())
+
+
+
+        else:
+
+            if self.position.is_long:
+
+                if price == S1_ExL:
+
+                    print(f"[롱포지션 청산] S1_ExL: {S1_ExL}")
+
+                    self.sp = 0
+                    self.tp = 0
+                    self.position.close()
+
+
+                elif price >= self.tp:
+
+                    print(f"[롱포지션 익절] price {price} > tp {self.tp}")
+
+                    self.sp = 0
+                    self.tp = 0
+                    self.position.close()
+
+                elif price <= self.sp:
+
+                    print(f"[롱포지션 손절] price {price} > sp {self.sp}")
+
+                    self.sp = 0
+                    self.tp = 0
+                    self.position.close()
+
+
+
+
+            elif self.position.is_short:
+
+                if price == S1_ExS:
+
+                    print(f"[숏포지션 청산] S1_ExS: {S1_ExS}")
+
+                    self.sp = 0
+                    self.tp = 0
+                    self.position.close()
+
+
+                elif price <= self.tp:
+
+                    print(f"[숏포지션 익절] price {price} < tp {self.tp}")
+
+                    self.sp = 0
+                    self.tp = 0
+                    self.position.close()
+
+
+
+                elif price >= self.sp:
+
+                    print(f"[숏포지션 손절] price {price} > sp {self.sp}")
+
+                    self.sp = 0
+                    self.tp = 0
+                    self.position.close()
+
+
+
+
 class Turtle(Strategy):
 
     def init(self):
@@ -1014,8 +1142,8 @@ class Fire(QMainWindow, main_form):
 
         df = pd.read_csv('./Data/(tick_chart) NQU24_100틱_240603070056_240629055933.csv')
 
-        start = '2024-06-28 22:00:00'
-        end = '2024-06-29 06:00:00'
+        start = '2024-06-28 23:00:00'
+        end = '2024-06-28 23:30:00'
         df['date_time'] = pd.to_datetime(df['date_time'])
 
         ohlcv = df[df['date_time'].between(start, end)]
@@ -1038,7 +1166,7 @@ class Fire(QMainWindow, main_form):
         print(stats['_trades'].to_string())
 
     def bt_run2(self):
-        df = pd.read_excel('./Data/NQU24_100틱_240702_OHLCV.xlsx',  engine='openpyxl')
+        df = pd.read_excel('./Data/re_NQU24_100틱_240605_RAW.xlsx',  engine='openpyxl')
 
         #date_time = pd.Timestamp.combine(df['date'].date(), df['time'])
 
@@ -1048,8 +1176,8 @@ class Fire(QMainWindow, main_form):
 
         df['date'] = df['date'].str.replace('/', '-')
 
-        start = '2024-07-02 22:00:00'
-        end = '2024-07-03 06:00:00'
+        start = '2024-07-02 23:30:00'
+        end = '2024-07-03 00:00:00'
         df['date_time'] = pd.to_datetime(df['date'] + " " + df['time'])
 
         ohlcv = df[df['date_time'].between(start, end)]
@@ -1061,7 +1189,7 @@ class Fire(QMainWindow, main_form):
         ohlcv.dropna(inplace=True)
         ohlcv.reset_index(inplace=True, drop=True)
 
-        bt = Fire2025(ohlcv, Turtle, cash=20000 * 10, commission=4.6, margin=1, point_value=20, trade_on_close=True)
+        bt = Fire2025(ohlcv, Turtle2, cash=20000 * 10, commission=4.6, margin=1, point_value=20, trade_on_close=True)
 
         stats = bt.run()
 
