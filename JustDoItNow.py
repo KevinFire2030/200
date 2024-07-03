@@ -962,6 +962,7 @@ class Fire(QMainWindow, main_form):
         # Broker 인스턴스 생성
         self.kiwoom = Broker(self, "NQU24", 100)
 
+
         """
         # 키움서버 접속
         self.kiwoom.comm_connect()
@@ -972,6 +973,7 @@ class Fire(QMainWindow, main_form):
         # 틱차트 요청
         self.kiwoom.req_opc10001()
         """
+
 
         ## 메인윈도우 이벤트 처리
         self.set_event_handler()
@@ -992,7 +994,8 @@ class Fire(QMainWindow, main_form):
         self.menu_opc10001_c.triggered.connect(self.kiwoom.req_opc10001_c)
 
         # 백테스팅
-        self.menu_bt_run.triggered.connect(self.bt_run)
+        self.menu_bt_run.triggered.connect(self.bt_run2
+                                           )
 
 
         pass
@@ -1009,11 +1012,45 @@ class Fire(QMainWindow, main_form):
 
 
 
-        df = pd.read_csv('./Data/(tick_chart) NQU24_100틱_240531070000_240628090935.csv')
+        df = pd.read_csv('./Data/(tick_chart) NQU24_100틱_240603070056_240629055933.csv')
 
-        start = '2024-06-21 22:00:00'
-        end = '2024-06-22 06:00:00'
+        start = '2024-06-28 22:00:00'
+        end = '2024-06-29 06:00:00'
         df['date_time'] = pd.to_datetime(df['date_time'])
+
+        ohlcv = df[df['date_time'].between(start, end)]
+
+        ohlcv = calc_N(ohlcv)
+        ohlcv = calc_breakouts(ohlcv)
+        ohlcv = calc_ma(ohlcv)
+
+        ohlcv.dropna(inplace=True)
+        ohlcv.reset_index(inplace=True, drop=True)
+
+        bt = Fire2025(ohlcv, Turtle, cash=20000 * 10, commission=4.6, margin=1, point_value=20, trade_on_close=True)
+
+        stats = bt.run()
+
+        print(stats)
+
+        bt.plot()
+
+        print(stats['_trades'].to_string())
+
+    def bt_run2(self):
+        df = pd.read_excel('./Data/NQU24_100틱_240702_OHLCV.xlsx',  engine='openpyxl')
+
+        #date_time = pd.Timestamp.combine(df['date'].date(), df['time'])
+
+        #df.replace({'date': {'/':'-'}}, inplace = True)
+
+        #df.replace({'date': {'/': '-'}}, inplace = True)
+
+        df['date'] = df['date'].str.replace('/', '-')
+
+        start = '2024-07-02 22:00:00'
+        end = '2024-07-03 06:00:00'
+        df['date_time'] = pd.to_datetime(df['date'] + " " + df['time'])
 
         ohlcv = df[df['date_time'].between(start, end)]
 
